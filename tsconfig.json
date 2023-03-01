@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "target": "ESNext",
+    "useDefineForClassFields": true,
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "jsx": "preserve",
+    "jsxImportSource": "repeater14-h",
+    //"types": ["vite/client"],
+    "noEmit": true,
+    "isolatedModules": true,
+    "noImplicitAny": false,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "paths": {
+      "$modules/*": ["./comp/modules/*"]
+    }
+  },
+  "include": ["comp", "./vite.config.ts"]
+}

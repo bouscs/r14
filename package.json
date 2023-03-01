@@ -1,0 +1,28 @@
+{
+  "name": "repeater14",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "compile": "npx tsc --project tsconfig.comp.json"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^5.50.0",
+    "@typescript-eslint/parser": "^5.50.0",
+    "eslint": "^8.33.0",
+    "eslint-config-airbnb": "^19.0.4",
+    "eslint-config-airbnb-typescript": "^17.0.0",
+    "eslint-config-prettier": "^8.6.0",
+    "eslint-plugin-prettier": "^4.2.1",
+    "prettier": "^2.8.3",
+    "typescript": "^5.0.0-beta",
+    "vite": "^4.1.0"
+  },
+  "dependencies": {
+    "eventemitter3": "^5.0.0",
+    "hyper-dom-expressions": "^0.35.15"
+  }
+}

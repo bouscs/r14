@@ -1,0 +1,55 @@
+{
+  "env": {
+    "browser": true,
+    "es2021": true
+  },
+  "extends": [
+    "eslint:recommended",
+    "plugin:@typescript-eslint/recommended",
+    //"airbnb",
+    //"airbnb-typescript",
+    "prettier"
+  ],
+  "overrides": [],
+  "parser": "@typescript-eslint/parser",
+  "parserOptions": {
+    "ecmaVersion": "latest",
+    "sourceType": "module",
+    "project": "./tsconfig.json"
+  },
+  "plugins": ["@typescript-eslint", "prettier"],
+  "ignorePatterns": ["node_modules/", "dist/", "comp/"],
+  "rules": {
+    "prettier/prettier": [
+      "error",
+      {
+        "endOfLine": "auto"
+      }
+    ],
+    "no-console": "off",
+    "class-methods-use-this": "off",
+    "no-await-in-loop": "off",
+    "no-underscore-dangle": "off",
+    "no-restricted-syntax": "off",
+    "no-plusplus": "off",
+    "no-empty-pattern": "off",
+    "no-param-reassign": "off",
+    "new-cap": "off",
+    "no-new": "off",
+    "no-loop-func": "off",
+    "func-names": "off",
+    "import/no-extraneous-dependencies": "off",
+    "@typescript-eslint/no-loop-func": "off",
+    "@typescript-eslint/no-explicit-any": "off",
+    // "@typescript-eslint/no-this-alias": "off",
+    "@typescript-eslint/no-empty-function": "off",
+    "@typescript-eslint/no-non-null-assertion": "off",
+    "@typescript-eslint/ban-ts-comment": "off",
+    "@typescript-eslint/no-shadow": "off",
+    // "@typescript-eslint/no-unused-vars": "off",
+    "@typescript-eslint/no-empty-interface": "off",
+    "@typescript-eslint/no-namespace": "off",
+    "@typescript-eslint/no-misused-new": "off",
+    "jsx-a11y/no-static-element-interactions": "off"
+  }
+}

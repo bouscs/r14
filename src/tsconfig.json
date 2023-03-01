@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "target": "ES2015",
+    "useDefineForClassFields": true,
+    "module": "ES2015",
+    "moduleResolution": "node",
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "jsx": "preserve",
+    "jsxImportSource": "repeater14-h",
+    //"types": ["vite/client"],
+    "noEmit": true,
+    "isolatedModules": true,
+    "noImplicitAny": false,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "paths": {
+      "$modules/*": ["./modules/*"]
+    }
+  },
+  "include": ["./"]
+}
