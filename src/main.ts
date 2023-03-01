@@ -1,4 +1,3 @@
-import './modules/engine'
 import { RepeaterEngine } from './modules/engine'
 import { EventListener, Signal } from 'aureamorum'
 import { Node, NodeEvents } from '$modules/node'
