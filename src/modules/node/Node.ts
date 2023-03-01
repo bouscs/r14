@@ -29,6 +29,9 @@ export class Node<EventList extends NodeEvents = NodeEvents> {
     >
   } = {}
 
+  /**
+   * Add method as a listener to the given event when the node is initialized. The listener will be removed when the node is destroyed.
+   */
   static on<
     EventList extends NodeEvents,
     This extends Node<EventList>,
