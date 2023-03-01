@@ -6,37 +6,68 @@ import {
   Signal,
   bound
 } from 'aureamorum'
+import { NodeEvent } from './NodeEvent'
+import { NodeEventListener } from './NodeEventListener'
+import { FixedUpdateEvent, NodeEventCallback } from './types'
 
-export interface NodeEvents {
-  destroy: () => void
-  fixedUpdate: (time: number) => void
+export interface NodeEventTypes {
+  destroy: NodeEvent
+  fixedUpdate: FixedUpdateEvent
 }
 
-export type NodeEventsOf<T extends Node> = T extends Node<infer E> ? E : never
-
-export class Node<EventList extends NodeEvents = NodeEvents> {
+export class Node {
   destroySignal = new Signal({ once: true })
 
+  declare $events: NodeEventTypes
+
+  private _children: Node[] = []
+
+  private _parent: Node | null = null
+
   private _listeners: {
-    [K in keyof EventList]?: Set<
-      (...args: any[]) => void | ((listener: EventListener) => void)
-    >
+    [K in keyof this['$events']]?: Set<NodeEventCallback<any, any>>
   } = {}
 
   private _onceListeners: {
-    [K in keyof EventList]?: Set<
-      (...args: any[]) => void | ((listener: EventListener) => void)
-    >
+    [K in keyof this['$events']]?: Set<NodeEventCallback<any, any>>
   } = {}
+
+  get children() {
+    return [...this._children]
+  }
+
+  get parent() {
+    return this._parent
+  }
+
+  set parent(parent: Node | null) {
+    if (this._parent === parent) {
+      return
+    }
+
+    if (this._parent) {
+      this._parent._children.splice(this._parent._children.indexOf(this), 1)
+    }
+
+    this._parent = parent
+
+    if (this._parent) {
+      this._parent._children.push(this)
+    }
+  }
+
+  get root(): Node {
+    if (this._parent) {
+      return this._parent.root
+    }
+
+    return this
+  }
 
   /**
    * Add method as a listener to the given event when the node is initialized. The listener will be removed when the node is destroyed.
    */
-  static on<
-    EventList extends NodeEvents,
-    This extends Node<EventList>,
-    EventName extends keyof NodeEventsOf<This>
-  >(
+  static on<This extends Node, EventName extends keyof This['$events']>(
     event: EventName,
     options: {
       once?: boolean
@@ -46,26 +77,22 @@ export class Node<EventList extends NodeEvents = NodeEvents> {
     return (
       originalMethod: (
         this: This,
-        ...args: EventArgs<NodeEventsOf<This>, EventName>
-      ) =>
-        | void
-        | ((listener: EventListener<NodeEventsOf<This>, EventName>) => void),
+        e: This['$events'][EventName]
+      ) => void | ((listener: NodeEventListener<This, EventName>) => void),
       context: ClassMethodDecoratorContext<
-        This,
+        any,
         (
           this: This,
-          ...args: EventArgs<NodeEventsOf<This>, EventName>
-        ) =>
-          | void
-          | ((listener: EventListener<NodeEventsOf<This>, EventName>) => void)
+          e: This['$events'][EventName]
+        ) => void | ((listener: NodeEventListener<This, EventName>) => void)
       >
     ) => {
       context.addInitializer(function (this: This) {
-        let listener: EventListener<NodeEventsOf<This>, EventName>
+        let listener: NodeEventListener<This, EventName>
         if (options.once) {
-          listener = this.once(event as any, originalMethod.bind(this)) as any
+          listener = this.once(event, originalMethod.bind(this))
         } else {
-          listener = this.on(event as any, originalMethod.bind(this)) as any
+          listener = this.on(event, originalMethod.bind(this))
         }
 
         listener.until(this.destroySignal)
@@ -82,43 +109,35 @@ export class Node<EventList extends NodeEvents = NodeEvents> {
     }
   }
 
-  on<EventName extends keyof EventList>(
+  on<EventName extends keyof this['$events']>(
     eventName: EventName,
-    listener: EventList[EventName]
-  ): EventListener<EventList, EventName> {
+    listener: NodeEventCallback<this, EventName>
+  ): NodeEventListener<this, EventName> {
     if (!this._listeners[eventName]) {
       this._listeners[eventName] = new Set()
     }
 
     this._listeners[eventName]!.add(listener as any)
 
-    return new EventListener(
-      this as unknown as EventEmitter,
-      eventName as any,
-      listener as any
-    ) as any
+    return new NodeEventListener(this, eventName, listener)
   }
 
-  once<EventName extends keyof EventList>(
+  once<EventName extends keyof this['$events']>(
     eventName: EventName,
-    listener: EventList[EventName]
-  ): EventListener<EventList, EventName> {
+    listener: NodeEventCallback<this, EventName>
+  ): NodeEventListener<this, EventName> {
     if (!this._onceListeners[eventName]) {
       this._onceListeners[eventName] = new Set()
     }
 
     this._onceListeners[eventName]!.add(listener as any)
 
-    return new EventListener(
-      this as unknown as EventEmitter,
-      eventName as any,
-      listener as any
-    ) as any
+    return new NodeEventListener(this, eventName, listener)
   }
 
-  off<EventName extends keyof EventList>(
+  off<EventName extends keyof this['$events']>(
     eventName: EventName,
-    listener: EventList[EventName]
+    listener: NodeEventCallback<this, EventName>
   ): void {
     if (this._listeners[eventName]) {
       this._listeners[eventName]!.delete(listener as any)
@@ -137,26 +156,15 @@ export class Node<EventList extends NodeEvents = NodeEvents> {
     }
   }
 
-  emit<EventName extends keyof EventList>(
+  emit<EventName extends keyof this['$events']>(
     eventName: EventName,
-    ...args: EventArgs<EventList, EventName>
+    e: this['$events'][EventName]
   ): void {
-    const callListener = (
-      listener: (
-        ...args: any[]
-      ) =>
-        | void
-        | ((
-            listener: EventListener<
-              Record<string, (...args: any[]) => void>,
-              any
-            >
-          ) => void)
-    ) => {
-      const result = listener(...args)
+    const callListener = (listener: NodeEventCallback<this, any>) => {
+      const result = listener(e)
 
       if (typeof result === 'function') {
-        result(new EventListener(this as any, eventName as any, listener))
+        result(new NodeEventListener(this, eventName, listener))
       }
     }
 

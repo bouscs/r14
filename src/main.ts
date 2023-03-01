@@ -1,6 +1,11 @@
 import { RepeaterEngine } from './modules/engine'
-import { EventListener, Signal } from 'aureamorum'
-import { Node, NodeEvents } from '$modules/node'
+import { Signal } from 'aureamorum'
+import {
+  FixedUpdateEvent,
+  Node,
+  NodeEvent,
+  NodeEventListener
+} from '$modules/node'
 
 const el = document.querySelector<HTMLDivElement>('#app')!
 
@@ -13,11 +18,11 @@ const sig = new Signal()
 
 class MyNode extends Node {
   @Node.on('fixedUpdate')
-  fixedUpdate(time: number) {
-    console.log('fixedUpdate', time)
+  fixedUpdate(e: FixedUpdateEvent) {
+    console.log('fixedUpdate', e.time)
 
-    return (listener: EventListener<NodeEvents, 'fixedUpdate'>) => {
-      if (time > 240) {
+    return (listener: NodeEventListener) => {
+      if (e.time >= 240) {
         listener.off()
       }
     }
@@ -30,7 +35,10 @@ engine.clock.fixedUpdateSignal
   .on(time => listener => {
     fixedUpdates++
     el.innerHTML = String(Math.floor(fixedUpdates / 60))
-    node.emit('fixedUpdate', time)
+    node.emit(
+      'fixedUpdate',
+      Object.assign(new NodeEvent(), { time, type: 'fixedUpdate' })
+    )
   })
   .until(sig)
   .then(() => {
