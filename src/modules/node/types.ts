@@ -3,11 +3,11 @@ import { NodeEvent } from './NodeEvent'
 import { NodeEventListener } from './NodeEventListener'
 
 export type NodeEventCallback<
-  N extends Node = any,
-  EventName extends keyof N['$events'] = any
+  Events extends Node['$events'] = Node['$events'],
+  EventName extends keyof Events = any
 > = (
-  e: N['$events'][EventName]
-) => void | ((listener: NodeEventListener<N, EventName>) => void)
+  e: Events[EventName]
+) => void | ((listener: NodeEventListener<Events, EventName>) => void)
 
 export type FixedUpdateEvent = NodeEvent & {
   time: number

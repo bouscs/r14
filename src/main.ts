@@ -4,7 +4,8 @@ import {
   FixedUpdateEvent,
   Node,
   NodeEvent,
-  NodeEventListener
+  NodeEventListener,
+  NodeEventTypes
 } from '$modules/node'
 
 const el = document.querySelector<HTMLDivElement>('#app')!
@@ -16,10 +17,31 @@ const engine = new RepeaterEngine()
 let fixedUpdates = 0
 const sig = new Signal()
 
+class ChildNode extends Node {
+  name = 'child'
+
+  declare $events: NodeEventTypes & {
+    childEvent: NodeEvent
+  }
+
+  @Node.on<ChildNode, 'childEvent'>('childEvent')
+  childEvent(e: NodeEvent) {
+    console.log('childEvent', e)
+  }
+}
+
 class MyNode extends Node {
+  @Node.child('child')
+  accessor child!: ChildNode
+
+  constructor() {
+    super()
+    this.add(new ChildNode())
+  }
+
   @Node.on('fixedUpdate')
   fixedUpdate(e: FixedUpdateEvent) {
-    console.log('fixedUpdate', e.time)
+    //console.log('fixedUpdate', e.time)
 
     return (listener: NodeEventListener) => {
       if (e.time >= 240) {
@@ -30,6 +52,10 @@ class MyNode extends Node {
 }
 
 const node = new MyNode()
+console.log(node)
+console.log(node.child)
+
+node.emit('childEvent', new NodeEvent())
 
 engine.clock.fixedUpdateSignal
   .on(time => listener => {
