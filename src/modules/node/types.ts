@@ -1,9 +1,9 @@
-import { Node } from './Node'
+import { Node, NodeEventTypes } from './Node'
 import { NodeEvent } from './NodeEvent'
 import { NodeEventListener } from './NodeEventListener'
 
 export type NodeEventCallback<
-  Events extends Node['$events'] = Node['$events'],
+  Events extends NodeEventTypes = NodeEventTypes,
   EventName extends keyof Events = any
 > = (
   e: Events[EventName]
@@ -12,3 +12,5 @@ export type NodeEventCallback<
 export type FixedUpdateEvent = NodeEvent & {
   time: number
 }
+
+export type NodeEvents<N extends Node> = N extends Node<infer E> ? E : never

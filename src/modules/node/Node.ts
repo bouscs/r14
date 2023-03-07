@@ -1,33 +1,28 @@
 import { Class, EventEmitter, Signal, bound } from 'aureamorum'
 import { NodeEvent } from './NodeEvent'
 import { NodeEventListener } from './NodeEventListener'
-import { FixedUpdateEvent, NodeEventCallback } from './types'
+import { FixedUpdateEvent, NodeEventCallback, NodeEvents } from './types'
 
-export interface NodeEventTypes {
+export interface NodeEventTypes extends Record<string | symbol, NodeEvent> {
   destroy: NodeEvent
   fixedUpdate: FixedUpdateEvent
 }
 
-export class Node {
+export class Node<E extends NodeEventTypes = NodeEventTypes> {
   destroySignal = new Signal({ once: true })
 
   name: string | symbol = 'Node'
 
-  /**
-   * Pseudo-property to define the events that can be emitted by the node.
-   */
-  declare $events: NodeEventTypes
+  private _children: Node<any>[] = []
 
-  private _children: Node[] = []
-
-  private _parent: Node | null = null
+  private _parent: Node<any> | null = null
 
   private _listeners: {
-    [K in keyof this['$events']]?: Set<NodeEventCallback<any, any>>
+    [K in keyof E]?: Set<NodeEventCallback<E, any>>
   } = {}
 
   private _onceListeners: {
-    [K in keyof this['$events']]?: Set<NodeEventCallback<any, any>>
+    [K in keyof E]?: Set<NodeEventCallback<E, any>>
   } = {}
 
   get children() {
@@ -38,7 +33,7 @@ export class Node {
     return this._parent
   }
 
-  set parent(parent: Node | null) {
+  set parent(parent: Node<any> | null) {
     if (this._parent === parent) {
       return
     }
@@ -54,7 +49,7 @@ export class Node {
     }
   }
 
-  get root(): Node {
+  get root(): Node<any> {
     if (this._parent) {
       return this._parent.root
     }
@@ -65,7 +60,7 @@ export class Node {
   /**
    * Add method as a listener to the given event when the node is initialized. The listener will be removed when the node is destroyed.
    */
-  static on<This extends Node, EventName extends keyof This['$events']>(
+  static on<This extends Node<any>, EventName extends keyof NodeEvents<This>>(
     event: EventName,
     options: {
       once?: boolean
@@ -75,22 +70,22 @@ export class Node {
     return (
       originalMethod: (
         this: This,
-        e: This['$events'][EventName]
+        e: NodeEvents<This>[EventName]
       ) =>
         | void
-        | ((listener: NodeEventListener<This['$events'], EventName>) => void),
+        | ((listener: NodeEventListener<NodeEvents<This>, EventName>) => void),
       context: ClassMethodDecoratorContext<
         any,
         (
           this: This,
-          e: This['$events'][EventName]
+          e: NodeEvents<This>[EventName]
         ) =>
           | void
-          | ((listener: NodeEventListener<This['$events'], EventName>) => void)
+          | ((listener: NodeEventListener<NodeEvents<This>, EventName>) => void)
       >
     ) => {
       context.addInitializer(function (this: This) {
-        let listener: NodeEventListener<This['$events'], EventName>
+        let listener: NodeEventListener<NodeEvents<This>, EventName>
         if (options.once) {
           listener = this.once(event, originalMethod.bind(this))
         } else {
@@ -142,35 +137,35 @@ export class Node {
     }
   }
 
-  on<EventName extends keyof this['$events']>(
+  on<EventName extends keyof E>(
     eventName: EventName,
-    listener: NodeEventCallback<this['$events'], EventName>
-  ): NodeEventListener<this['$events'], EventName> {
+    listener: NodeEventCallback<E, EventName>
+  ) {
     if (!this._listeners[eventName]) {
       this._listeners[eventName] = new Set()
     }
 
     this._listeners[eventName]!.add(listener as any)
 
-    return new NodeEventListener<this['$events']>(this, eventName, listener)
+    return new NodeEventListener(this, eventName, listener)
   }
 
-  once<EventName extends keyof this['$events']>(
+  once<EventName extends keyof E>(
     eventName: EventName,
-    listener: NodeEventCallback<this['$events'], EventName>
-  ): NodeEventListener<this['$events'], EventName> {
+    listener: NodeEventCallback<E, EventName>
+  ) {
     if (!this._onceListeners[eventName]) {
       this._onceListeners[eventName] = new Set()
     }
 
     this._onceListeners[eventName]!.add(listener as any)
 
-    return new NodeEventListener<this['$events']>(this, eventName, listener)
+    return new NodeEventListener(this, eventName, listener)
   }
 
-  off<EventName extends keyof this['$events']>(
+  off<EventName extends keyof E>(
     eventName: EventName,
-    listener: NodeEventCallback<this['$events'], EventName>
+    listener: NodeEventCallback<E, EventName>
   ): void {
     if (this._listeners[eventName]) {
       this._listeners[eventName]!.delete(listener as any)
@@ -189,13 +184,10 @@ export class Node {
     }
   }
 
-  emit<EventName extends keyof this['$events']>(
-    eventName: EventName,
-    e: this['$events'][EventName]
-  ): void
+  emit<EventName extends keyof E>(eventName: EventName, e: E[EventName]): void
   emit(eventName: string, e: any): void
   emit(eventName: string, e: any) {
-    const callListener = (listener: NodeEventCallback<this['$events']>) => {
+    const callListener = (listener: NodeEventCallback<E>) => {
       const result = listener(e)
 
       if (typeof result === 'function') {

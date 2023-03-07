@@ -1,17 +1,18 @@
 import { EventEmitter, Signal } from 'aureamorum'
-import { Node } from './Node'
+import { Node, NodeEventTypes } from './Node'
+import { NodeEvents } from './types'
 
 export class NodeEventListener<
-  Events extends Node['$events'] = Node['$events'],
+  Events extends NodeEventTypes = NodeEventTypes,
   EventName extends keyof Events = any
 > {
   callback: (e: Events[EventName]) => void
-  emitter: Node
+  emitter: Node<Events>
 
   event: EventName
 
   constructor(
-    emitter: Node,
+    emitter: Node<Events>,
     event: EventName,
     callback: (e: Events[EventName]) => void
   ) {
@@ -21,7 +22,7 @@ export class NodeEventListener<
   }
 
   off() {
-    this.emitter.off(this.event as any, this.callback as any)
+    this.emitter.off(this.event, this.callback as any)
   }
 
   until<T>(promise: Promise<T>): Promise<T>

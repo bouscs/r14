@@ -24,7 +24,7 @@ class ChildNode extends Node {
     childEvent: NodeEvent
   }
 
-  @Node.on<ChildNode, 'childEvent'>('childEvent')
+  @Node.on('childEvent')
   childEvent(e: NodeEvent) {
     console.log('childEvent', e)
   }
