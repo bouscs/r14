@@ -12,3 +12,8 @@ export type NodeEventCallback<
 export type FixedUpdateEvent = NodeEvent & {
   time: number
 }
+
+export type UpdateEvent = NodeEvent & {
+  time: number
+  delta: number
+}

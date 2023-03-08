@@ -10,8 +10,6 @@ import {
 
 const el = document.querySelector<HTMLDivElement>('#app')!
 
-console.log('Hello from Vite!')
-
 const engine = new RepeaterEngine()
 
 let fixedUpdates = 0
@@ -36,7 +34,14 @@ class MyNode extends Node {
 
   constructor() {
     super()
-    this.add(new ChildNode())
+    this.add(new ChildNode() as any)
+
+    this.go()
+  }
+
+  async go() {
+    await this.wait('fixedUpdate', 120)
+    console.log('waited 120')
   }
 
   @Node.on('fixedUpdate')
@@ -76,6 +81,7 @@ engine.clock.fixedUpdateSignal
 
     await sig
     console.log('finished3')
+
     engine.clock.stop()
   })
 

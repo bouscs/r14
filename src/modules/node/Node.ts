@@ -1,11 +1,12 @@
 import { Class, EventEmitter, Signal, bound } from 'aureamorum'
 import { NodeEvent } from './NodeEvent'
 import { NodeEventListener } from './NodeEventListener'
-import { FixedUpdateEvent, NodeEventCallback } from './types'
+import { FixedUpdateEvent, NodeEventCallback, UpdateEvent } from './types'
 
 export interface NodeEventTypes {
   destroy: NodeEvent
   fixedUpdate: FixedUpdateEvent
+  update: UpdateEvent
 }
 
 export class Node {
@@ -21,6 +22,8 @@ export class Node {
   private _children: Node[] = []
 
   private _parent: Node | null = null
+
+  private _coroutines = new Map<GeneratorFunction, Signal>()
 
   private _listeners: {
     [K in keyof this['$events']]?: Set<NodeEventCallback<any, any>>
@@ -220,6 +223,55 @@ export class Node {
     }
 
     this.children.forEach(child => child.emit(eventName as any, e))
+  }
+
+  wait<EventName extends keyof this['$events']>(
+    eventName: EventName,
+    times = 1
+  ): Promise<this['$events'][EventName]> {
+    return new Promise(resolve => {
+      this.on(eventName, e => listener => {
+        if (--times === 0) {
+          listener.off()
+          resolve(e)
+        }
+      })
+    })
+  }
+
+  async startCoroutine(coroutine: GeneratorFunction) {
+    if (this._coroutines.has(coroutine)) return
+
+    this._coroutines.set(coroutine, new Signal())
+
+    const iterator = coroutine.call(this)
+
+    let aborted = false
+
+    const abort = () => {
+      aborted = true
+    }
+
+    this._coroutines.get(coroutine)!.once(abort)
+
+    this.destroySignal.once(abort)
+
+    let done = false
+    do {
+      if (aborted) {
+        break
+      }
+
+      const result = await iterator.next()
+
+      await this.wait('update')
+
+      done = result.done || result.value === undefined
+    } while (!done)
+
+    this._coroutines.get(coroutine)!.clear()
+
+    this._coroutines.delete(coroutine)
   }
 
   @bound
