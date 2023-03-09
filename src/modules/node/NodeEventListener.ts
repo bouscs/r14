@@ -1,4 +1,4 @@
-import { EventEmitter, Signal } from 'aureamorum'
+import { EventEmitter } from 'aureamorum'
 import { Node } from './Node'
 
 export class NodeEventListener<
