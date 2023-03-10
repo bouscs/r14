@@ -1,7 +1,12 @@
-import { Class, EventEmitter, Signal, bound, rad } from 'aureamorum'
+import { Class, EventEmitter, Signal, bound, getClass, rad } from 'aureamorum'
 import { NodeEvent } from './NodeEvent'
 import { NodeEventListener } from './NodeEventListener'
-import { FixedUpdateEvent, NodeEventCallback, UpdateEvent } from './types'
+import {
+  FixedUpdateEvent,
+  NodeEventCallback,
+  NodeTemplate,
+  UpdateEvent
+} from './types'
 import * as THREE from 'three'
 import { EulerSimple, Vector3Simple } from '..'
 
@@ -19,6 +24,8 @@ export interface NodeProps {
 
   children?: Node[]
 }
+
+export const nodeTemplateSymbol = Symbol('nodeTemplate')
 
 export class Node {
   destroySignal = new Signal({ once: true })
@@ -110,8 +117,8 @@ export class Node {
   private _parent: Node | null = null
 
   private _coroutines = new Map<
-    GeneratorFunction,
-    { abort: Signal; started: boolean; iterator: Generator }
+    GeneratorFunction | AsyncGeneratorFunction,
+    { abort: Signal; started: boolean; iterator: Generator | AsyncGenerator }
   >()
 
   private _listeners: {
@@ -170,7 +177,9 @@ export class Node {
         e: This['$events'][EventName]
       ) =>
         | void
-        | ((listener: NodeEventListener<This['$events'], EventName>) => void),
+        | ((
+            listener: NodeEventListener<EventName, This['$events'][EventName]>
+          ) => void),
       context: ClassMethodDecoratorContext<
         any,
         (
@@ -178,11 +187,13 @@ export class Node {
           e: This['$events'][EventName]
         ) =>
           | void
-          | ((listener: NodeEventListener<This['$events'], EventName>) => void)
+          | ((
+              listener: NodeEventListener<EventName, This['$events'][EventName]>
+            ) => void)
       >
     ) => {
       context.addInitializer(function (this: This) {
-        let listener: NodeEventListener<This['$events'], EventName>
+        let listener: NodeEventListener<EventName, This['$events'][EventName]>
         if (options.once) {
           listener = this.once(event, originalMethod.bind(this))
         } else {
@@ -234,6 +245,14 @@ export class Node {
     }
   }
 
+  static template<T extends Class<Node>>(template: NodeTemplate) {
+    return function (constructor: T, context: ClassDecoratorContext<T>) {
+      context.addInitializer(function (this: T) {
+        this[nodeTemplateSymbol] = template
+      })
+    }
+  }
+
   constructor(props?: NodeProps) {
     this.on('update', e => {
       this._delta = e.delta
@@ -280,6 +299,14 @@ export class Node {
         })
       }
     }
+
+    const template = getClass(this)[nodeTemplateSymbol] as
+      | NodeTemplate
+      | undefined
+
+    if (template) {
+      this.add(template())
+    }
   }
 
   localToWorld(quaternion: THREE.Quaternion): THREE.Quaternion
@@ -308,33 +335,33 @@ export class Node {
 
   on<EventName extends keyof this['$events']>(
     eventName: EventName,
-    listener: NodeEventCallback<this['$events'], EventName>
-  ): NodeEventListener<this['$events'], EventName> {
+    listener: NodeEventCallback<EventName, this['$events'][EventName]>
+  ): NodeEventListener<EventName, this['$events'][EventName]> {
     if (!this._listeners[eventName]) {
       this._listeners[eventName] = new Set()
     }
 
     this._listeners[eventName]!.add(listener as any)
 
-    return new NodeEventListener<this['$events']>(this, eventName, listener)
+    return new NodeEventListener(this, eventName, listener)
   }
 
   once<EventName extends keyof this['$events']>(
     eventName: EventName,
-    listener: NodeEventCallback<this['$events'], EventName>
-  ): NodeEventListener<this['$events'], EventName> {
+    listener: NodeEventCallback<EventName, this['$events'][EventName]>
+  ): NodeEventListener<EventName, this['$events'][EventName]> {
     if (!this._onceListeners[eventName]) {
       this._onceListeners[eventName] = new Set()
     }
 
     this._onceListeners[eventName]!.add(listener as any)
 
-    return new NodeEventListener<this['$events']>(this, eventName, listener)
+    return new NodeEventListener(this, eventName, listener)
   }
 
   off<EventName extends keyof this['$events']>(
     eventName: EventName,
-    listener: NodeEventCallback<this['$events'], EventName>
+    listener: NodeEventCallback<EventName, this['$events'][EventName]>
   ): void {
     if (this._listeners[eventName]) {
       this._listeners[eventName]!.delete(listener as any)
@@ -359,7 +386,7 @@ export class Node {
   ): void
   emit(eventName: string, e: any): void
   emit(eventName: string, e: any) {
-    const callListener = (listener: NodeEventCallback<this['$events']>) => {
+    const callListener = (listener: NodeEventCallback) => {
       const result = listener(e)
 
       if (typeof result === 'function') {
@@ -409,18 +436,18 @@ export class Node {
     })
   }
 
-  async startCoroutine(coroutine: GeneratorFunction) {
+  async startCoroutine(coroutine: AsyncGeneratorFunction | GeneratorFunction) {
     if (
       this._coroutines.has(coroutine) &&
       this._coroutines.get(coroutine)!.started
     ) {
-      throw new Error('Coroutine already started')
+      this._coroutines.get(coroutine)!.abort.call()
     }
 
     if (!this._coroutines.has(coroutine)) {
       this._coroutines.set(coroutine, {
         abort: new Signal(),
-        iterator: coroutine.call(this),
+        iterator: (coroutine as any).call(this),
         started: true
       })
     }
@@ -432,9 +459,16 @@ export class Node {
     let aborted = false
 
     const abort = () => {
+      if (aborted) return
+
       aborted = true
 
+      this._coroutines.get(coroutine)!.started = false
       this._coroutines.get(coroutine)!.abort.off(abort)
+      this._coroutines.get(coroutine)!.iterator.return(null)
+      this._coroutines.get(coroutine)!.abort.clear()
+      this._coroutines.delete(coroutine)
+
       this.destroySignal.off(abort)
     }
 
@@ -449,7 +483,13 @@ export class Node {
         break
       }
 
-      const result = await iterator.next()
+      const result = await (iterator.next() as unknown as Promise<any>).catch(
+        abort
+      )
+
+      if (aborted) {
+        break
+      }
 
       if (result.value instanceof Promise) {
         await result.value.catch(abort)
@@ -459,10 +499,6 @@ export class Node {
 
       done = result.done || result.value === undefined
     } while (!done)
-
-    this._coroutines.get(coroutine)!.abort.clear()
-
-    this._coroutines.delete(coroutine)
   }
 
   stopCoroutine(coroutine: GeneratorFunction) {
@@ -486,7 +522,18 @@ export class Node {
     return this.children.find(child => child instanceof arg0)!
   }
 
-  add(node: Node) {
-    node.parent = this
+  add(node: Node): void
+  add(nodes: Node[]): void
+  add(node: Node | Node[]): void
+  add(node: Node | Node[]): void {
+    if (Array.isArray(node)) {
+      node.forEach(child => this.add(child))
+    } else {
+      node.parent = this
+    }
+  }
+
+  create(): NodeTemplate | void {
+    return () => []
   }
 }

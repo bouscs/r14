@@ -1,11 +1,12 @@
 import { EventEmitter } from 'aureamorum'
 import { Node } from './Node'
+import { NodeEvent } from './NodeEvent'
 
 export class NodeEventListener<
-  Events extends Node['$events'] = Node['$events'],
-  EventName extends keyof Events = any
+  EventName extends string | symbol | number = string | symbol | number,
+  EventData = NodeEvent
 > {
-  callback: (e: Events[EventName]) => void
+  callback: (e: EventData) => void
   emitter: Node
 
   event: EventName
@@ -13,7 +14,7 @@ export class NodeEventListener<
   constructor(
     emitter: Node,
     event: EventName,
-    callback: (e: Events[EventName]) => void
+    callback: (e: EventData) => void
   ) {
     this.callback = callback
     this.emitter = emitter
