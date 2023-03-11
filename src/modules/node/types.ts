@@ -3,14 +3,21 @@ import { NodeEvent } from './NodeEvent'
 import { NodeEventListener } from './NodeEventListener'
 
 export type NodeEventCallback<
-  Events extends NodeEventTypes = NodeEventTypes,
-  EventName extends keyof Events = any
+  EventName extends string | number | symbol = string | number | symbol,
+  EventData = NodeEvent
 > = (
-  e: Events[EventName]
-) => void | ((listener: NodeEventListener<Events, EventName>) => void)
+  e: EventData
+) => void | ((listener: NodeEventListener<EventName, EventData>) => void)
 
 export type FixedUpdateEvent = NodeEvent & {
   time: number
 }
 
-export type NodeEvents<N extends Node> = N extends Node<infer E> ? E : never
+export type UpdateEvent = NodeEvent & {
+  time: number
+  delta: number
+}
+
+export type NodeTemplate = {
+  (): Node | Node[]
+}
