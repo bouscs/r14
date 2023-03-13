@@ -10,8 +10,6 @@ export class Body2D extends Component {
   constructor(node: Node, props: any) {
     super(node, props)
 
-    console.log('Body2D', this.node.position)
-
     this.matterBody = Matter.Body.create({
       position: {
         x: this.node.position.x * 10,
