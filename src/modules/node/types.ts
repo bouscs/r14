@@ -1,6 +1,4 @@
-import { Node, NodeEventTypes } from './Node'
-import { NodeEvent } from './NodeEvent'
-import { NodeEventListener } from './NodeEventListener'
+import { Node, NodeEvent, NodeEventListener } from '.'
 
 export type NodeEventCallback<
   EventName extends string | number | symbol = string | number | symbol,

@@ -26,6 +26,7 @@
   "dependencies": {
     "eventemitter3": "^5.0.0",
     "hyper-dom-expressions": "^0.35.15",
-    "three": "^0.150.1"
+    "three": "^0.150.1",
+    "uuid": "^9.0.0"
   }
 }

@@ -23,7 +23,7 @@ class ChildNode extends Node {
     childEvent: NodeEvent
   }
 
-  @Node.on<ChildNode, 'childEvent'>('childEvent')
+  @Node.on('childEvent')
   childEvent(e: NodeEvent) {
     console.log('childEvent', e)
   }
@@ -48,7 +48,9 @@ class MyNode extends Node {
     await this.wait('fixedUpdate', 120)
     console.log('waited 120')
 
-    this.startCoroutine(this.gen)
+    await this.startCoroutine(this.gen)
+
+    console.log('finished coroutine')
   }
 
   gen = async function* (this: MyNode) {
@@ -60,55 +62,10 @@ class MyNode extends Node {
 
     yield this.wait('fixedUpdate', 120)
     console.log('gen waited 120')
-    yield this.wait('fixedUpdate', 120)
-    console.log('gen waited 120')
-    yield this.wait('fixedUpdate', 120)
-    console.log('gen waited 120')
-    yield this.wait('fixedUpdate', 120)
-    console.log('gen waited 120')
-    yield this.wait('fixedUpdate', 120)
-    console.log('gen waited 120')
-    yield this.wait('fixedUpdate', 120)
-    console.log('gen waited 120')
   } as AsyncGeneratorFunction
 
   gen2 = async function* (this: MyNode) {
     console.log('gen2 start')
-    yield this.wait('fixedUpdate', 120)
-    console.log('gen2 waited 120')
-    yield this.wait('fixedUpdate', 120)
-    await this.wait('fixedUpdate', 120)
-    console.log('gen2 waited 240')
-    yield this.wait('fixedUpdate', 120)
-    console.log('gen2 waited 120')
-    yield this.wait('fixedUpdate', 120)
-    console.log('gen2 waited 120')
-    yield this.wait('fixedUpdate', 120)
-    console.log('gen2 waited 120')
-    yield this.wait('fixedUpdate', 120)
-    console.log('gen2 waited 120')
-    yield this.wait('fixedUpdate', 120)
-    console.log('gen2 waited 120')
-    yield this.wait('fixedUpdate', 120)
-    console.log('gen2 waited 120')
-    yield this.wait('fixedUpdate', 120)
-    console.log('gen2 waited 120')
-    yield this.wait('fixedUpdate', 120)
-    console.log('gen2 waited 120')
-    yield this.wait('fixedUpdate', 120)
-    console.log('gen2 waited 120')
-    yield this.wait('fixedUpdate', 120)
-    console.log('gen2 waited 120')
-    yield this.wait('fixedUpdate', 120)
-    console.log('gen2 waited 120')
-    yield this.wait('fixedUpdate', 120)
-    console.log('gen2 waited 120')
-    yield this.wait('fixedUpdate', 120)
-    console.log('gen2 waited 120')
-    yield this.wait('fixedUpdate', 120)
-    console.log('gen2 waited 120')
-    yield this.wait('fixedUpdate', 120)
-    console.log('gen2 waited 120')
     yield this.wait('fixedUpdate', 120)
     console.log('gen2 waited 120')
   } as AsyncGeneratorFunction
@@ -143,8 +100,6 @@ engine.clock.fixedUpdateSignal
   .then(async () => {
     console.log('finished2')
 
-    node.startCoroutine(node.gen)
-
     await sig
     console.log('finished3')
 
@@ -178,8 +133,15 @@ setTimeout(() => {
   }, 2000)
 }, 5000)
 
-engine.clock.start()
-
+@Node.template(() => (
+  <>
+    <Node name="head">
+      <Node name="camera" />
+    </Node>
+    <Node name="body" />
+    <Node name="gun" />
+  </>
+))
 class Player extends Node {
   @Node.child('camera')
   accessor camera!: Node
@@ -193,23 +155,13 @@ class Player extends Node {
   @Node.child('gun')
   accessor gun!: Node
 
-  create() {
-    return (
-      <>
-        <Node name="camera" />
-        <Node name="body" />
-        <Node name="head" />
-        <Node name="gun" />
-      </>
-    )
-  }
+  @Node.on('fixedUpdate')
+  fixedUpdate(e: FixedUpdateEvent) {}
 }
 
-export const fase1 = (
-  <>
-    <Player position={[10, 10, 0]} />
-    <Player position={[10, 10, 0]} />
-  </>
-)
+export const fase1 = (<>
+  <Player position={[10, 10, 0]} />
+</>)()
 
-console.log(fase1())
+engine.clock.start()
+engine.root.add(fase1)

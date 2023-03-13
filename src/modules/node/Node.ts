@@ -1,7 +1,6 @@
 import { Class, EventEmitter, Signal, bound, getClass, rad } from 'aureamorum'
 import { NodeEvent } from './NodeEvent'
 import { NodeEventListener } from './NodeEventListener'
-import { FixedUpdateEvent, NodeEventCallback, NodeEvents } from './types'
 import {
   FixedUpdateEvent,
   NodeEventCallback,
@@ -29,6 +28,8 @@ export interface NodeProps {
 export const nodeTemplateSymbol = Symbol('nodeTemplate')
 
 export class Node {
+  readonly id = Symbol('Node')
+
   destroySignal = new Signal({ once: true })
 
   name: string | symbol = 'Node'
@@ -114,7 +115,7 @@ export class Node {
    */
   declare $events: NodeEventTypes
 
-  private _parent: Node<any> | null = null
+  private _parent: Node | null = null
 
   private _coroutines = new Map<
     GeneratorFunction | AsyncGeneratorFunction,
@@ -122,11 +123,15 @@ export class Node {
   >()
 
   private _listeners: {
-    [K in keyof E]?: Set<NodeEventCallback<E, any>>
+    [K in keyof this['$events']]?: Set<
+      NodeEventCallback<keyof this['$events'], any>
+    >
   } = {}
 
   private _onceListeners: {
-    [K in keyof E]?: Set<NodeEventCallback<E, any>>
+    [K in keyof this['$events']]?: Set<
+      NodeEventCallback<keyof this['$events'], any>
+    >
   } = {}
 
   get children() {
@@ -137,7 +142,7 @@ export class Node {
     return this._parent
   }
 
-  set parent(parent: Node<any> | null) {
+  set parent(parent: Node | null) {
     if (this._parent === parent) {
       return
     }
@@ -153,7 +158,7 @@ export class Node {
     }
   }
 
-  get root(): Node<any> {
+  get root(): Node {
     if (this._parent) {
       return this._parent.root
     }
@@ -164,7 +169,7 @@ export class Node {
   /**
    * Add method as a listener to the given event when the node is initialized. The listener will be removed when the node is destroyed.
    */
-  static on<This extends Node<any>, EventName extends keyof NodeEvents<This>>(
+  static on<This extends Node, EventName extends keyof This['$events']>(
     event: EventName,
     options: {
       once?: boolean
@@ -174,17 +179,17 @@ export class Node {
     return (
       originalMethod: (
         this: This,
-        e: NodeEvents<This>[EventName]
+        e: This['$events'][EventName]
       ) =>
         | void
         | ((
             listener: NodeEventListener<EventName, This['$events'][EventName]>
           ) => void),
       context: ClassMethodDecoratorContext<
-        any,
+        This,
         (
           this: This,
-          e: NodeEvents<This>[EventName]
+          e: This['$events'][EventName]
         ) =>
           | void
           | ((
@@ -245,7 +250,10 @@ export class Node {
     }
   }
 
-  static template<T extends Class<Node>>(template: NodeTemplate) {
+  /**
+   * Define the children of the node when the node is initialized.
+   */
+  static template<T extends Class<Node>>(template: () => NodeTemplate) {
     return function (constructor: T, context: ClassDecoratorContext<T>) {
       context.addInitializer(function (this: T) {
         this[nodeTemplateSymbol] = template
@@ -294,18 +302,22 @@ export class Node {
       }
 
       if (props.children) {
-        props.children.forEach(child => {
-          this.add(child)
-        })
+        if (Array.isArray(props.children)) {
+          props.children.forEach(child => {
+            this.add(child)
+          })
+        } else {
+          this.add(props.children)
+        }
       }
     }
 
     const template = getClass(this)[nodeTemplateSymbol] as
-      | NodeTemplate
+      | ((this: this) => NodeTemplate)
       | undefined
 
     if (template) {
-      this.add(template())
+      this.add(template.call(this)())
     }
   }
 
@@ -507,19 +519,37 @@ export class Node {
     this._coroutines.get(coroutine)!.abort.call()
   }
 
+  coroutineStarted(coroutine: GeneratorFunction) {
+    return this._coroutines.has(coroutine)
+  }
+
   @bound
   destroy() {
     this.destroySignal.call()
+
+    this.children.forEach(child => child.destroy())
   }
 
   find(nodeClass: Class<Node>): Node
   find(name: string | symbol): Node
   find(arg0: string | symbol | Class<Node>): Node {
     if (typeof arg0 === 'string' || typeof arg0 === 'symbol') {
-      return this.children.find(child => child.name === arg0)!
+      const child = this.children.find(child => child.name === arg0)!
+
+      if (child) {
+        return child
+      }
+
+      return this.children.find(child => child.find(arg0))!
     }
 
-    return this.children.find(child => child instanceof arg0)!
+    const child = this.children.find(child => child instanceof arg0)!
+
+    if (child) {
+      return child
+    }
+
+    return this.children.find(child => child.find(arg0))!
   }
 
   add(node: Node): void
