@@ -1,6 +1,7 @@
 import { RepeaterEngine } from './modules'
 import { Signal, bound } from 'aureamorum'
 import {
+  Component,
   FixedUpdateEvent,
   Node,
   NodeEvent,
@@ -133,12 +134,24 @@ setTimeout(() => {
   }, 2000)
 }, 5000)
 
+class Body extends Component {
+  counter = 0
+
+  @Component.on('fixedUpdate')
+  fixedUpdate(e: FixedUpdateEvent) {
+    this.counter++
+
+    if (this.counter >= 60) {
+      this.node.destroy()
+    }
+  }
+}
+
 @Node.template(() => (
   <>
     <Node name="head">
       <Node name="camera" />
     </Node>
-    <Node name="body" />
     <Node name="gun" />
   </>
 ))
@@ -146,14 +159,14 @@ class Player extends Node {
   @Node.child('camera')
   accessor camera!: Node
 
-  @Node.child('body')
-  accessor body!: Node
-
   @Node.child('head')
   accessor head!: Node
 
   @Node.child('gun')
   accessor gun!: Node
+
+  @Node.component(Body)
+  accessor body!: Body
 
   @Node.on('fixedUpdate')
   fixedUpdate(e: FixedUpdateEvent) {}
@@ -165,3 +178,5 @@ export const fase1 = (<>
 
 engine.clock.start()
 engine.root.add(fase1)
+
+console.log(engine.root)

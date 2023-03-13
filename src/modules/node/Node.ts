@@ -8,7 +8,7 @@ import {
   UpdateEvent
 } from './types'
 import * as THREE from 'three'
-import { EulerSimple, Vector3Simple } from '..'
+import { Component, EulerSimple, Vector3Simple } from '..'
 
 export interface NodeEventTypes extends Record<string | symbol, NodeEvent> {
   destroy: NodeEvent
@@ -257,6 +257,28 @@ export class Node {
     return function (constructor: T, context: ClassDecoratorContext<T>) {
       context.addInitializer(function (this: T) {
         this[nodeTemplateSymbol] = template
+      })
+    }
+  }
+
+  /**
+   * Create a component and add it to the node when the node is initialized.
+   */
+  static component<This extends Node, Value extends Component<This>>(
+    componentClass: Class<Component<This>>,
+    props: Value['props'] = {} as any
+  ) {
+    return function (
+      _: any,
+      context: ClassAccessorDecoratorContext<This, Value>
+    ) {
+      context.addInitializer(function (this: This) {
+        const component = new componentClass(this, props)
+
+        Object.defineProperty(this, context.name, {
+          value: component,
+          writable: false
+        })
       })
     }
   }
