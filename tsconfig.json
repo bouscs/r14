@@ -15,10 +15,7 @@
     "isolatedModules": true,
     "noImplicitAny": false,
     "skipLibCheck": true,
-    "resolveJsonModule": true,
-    "paths": {
-      "$modules/*": ["./comp/modules/*"]
-    }
+    "resolveJsonModule": true
   },
   "include": ["comp", "./vite.config.ts"]
 }

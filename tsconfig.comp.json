@@ -14,10 +14,7 @@
     "isolatedModules": true,
     "noImplicitAny": false,
     "skipLibCheck": true,
-    "resolveJsonModule": true,
-    "paths": {
-      "$modules/*": ["./src/modules/*"]
-    }
+    "resolveJsonModule": true
   },
   "include": ["src"],
   "exclude": ["./src/tsconfig.json"]

@@ -1,21 +1,49 @@
-import { Clock, bound } from 'aureamorum'
+import { Class, Clock, bound } from 'aureamorum'
 import EventEmitter from 'eventemitter3'
-import { Node } from '..'
+import { Node, RepeaterPlugin } from '..'
+
+export interface RepeaterEngineOptions {
+  plugins?: Class<RepeaterPlugin>[]
+}
 
 export class RepeaterEngine extends EventEmitter {
   clock: Clock
 
   root: Node
 
-  constructor() {
+  plugins: RepeaterPlugin[] = []
+
+  constructor(options: RepeaterEngineOptions = {}) {
     super()
 
     this.clock = new Clock()
 
     this.root = new Node()
 
+    if (options.plugins) {
+      this.plugins = options.plugins.map(Plugin => {
+        const p = new Plugin()
+        p.engine = this
+
+        return p
+      })
+    }
+  }
+
+  start() {
+    this.initializePlugins()
     this.clock.on('update', this.update)
     this.clock.on('fixedUpdate', this.fixedUpdate)
+    this.clock.start()
+  }
+
+  private initializePlugins() {
+    this.plugins.forEach(plugin => {
+      plugin.load()
+    })
+    this.plugins.forEach(plugin => {
+      plugin.init()
+    })
   }
 
   @bound

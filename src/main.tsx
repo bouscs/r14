@@ -7,12 +7,19 @@ import {
   NodeEvent,
   NodeEventListener,
   NodeEventTypes,
-  NodeProps
-} from '$modules/node'
+  NodeProps,
+  MatterPlugin
+} from './modules'
+import { Body2D } from './modules/physics/Body2D'
+import * as Matter from 'matter-js'
 
 const el = document.querySelector<HTMLDivElement>('#app')!
 
-const engine = new RepeaterEngine()
+export const engine = new RepeaterEngine({
+  plugins: [MatterPlugin]
+})
+
+console.log(engine)
 
 let fixedUpdates = 0
 const sig = new Signal()
@@ -26,7 +33,7 @@ class ChildNode extends Node {
 
   @Node.on('childEvent')
   childEvent(e: NodeEvent) {
-    console.log('childEvent', e)
+    // console.log('childEvent', e)
   }
 }
 
@@ -47,28 +54,28 @@ class MyNode extends Node {
 
   async go() {
     await this.wait('fixedUpdate', 120)
-    console.log('waited 120')
+    // console.log('waited 120')
 
     await this.startCoroutine(this.gen)
 
-    console.log('finished coroutine')
+    // console.log('finished coroutine')
   }
 
   gen = async function* (this: MyNode) {
-    console.log('gen start')
+    // console.log('gen start')
     yield this.wait('fixedUpdate', 120)
-    console.log('gen waited 120')
+    // console.log('gen waited 120')
 
     yield* this.gen2()
 
     yield this.wait('fixedUpdate', 120)
-    console.log('gen waited 120')
+    // console.log('gen waited 120')
   } as AsyncGeneratorFunction
 
   gen2 = async function* (this: MyNode) {
-    console.log('gen2 start')
+    // console.log('gen2 start')
     yield this.wait('fixedUpdate', 120)
-    console.log('gen2 waited 120')
+    // console.log('gen2 waited 120')
   } as AsyncGeneratorFunction
 
   @Node.on('fixedUpdate')
@@ -82,8 +89,8 @@ const node = new MyNode({
   rotation: [90, 180, 0],
   scale: [1, 3, 1]
 })
-console.log(node)
-console.log(node.child)
+// console.log(node)
+// console.log(node.child)
 
 node.emit('childEvent', new NodeEvent())
 
@@ -94,15 +101,15 @@ engine.clock.fixedUpdateSignal
   })
   .until(sig)
   .then(() => {
-    console.log('finished')
+    // console.log('finished')
 
     return sig
   })
   .then(async () => {
-    console.log('finished2')
+    // console.log('finished2')
 
     await sig
-    console.log('finished3')
+    // console.log('finished3')
 
     // engine.clock.stop()
   })
@@ -120,32 +127,19 @@ engine.clock.fixedUpdateSignal.on(time => listener => {
 })
 
 setTimeout(() => {
-  console.log('calling')
+  // console.log('calling')
   sig.call()
 
   setTimeout(() => {
-    console.log('calling again')
+    // console.log('calling again')
     sig.call()
 
     setTimeout(() => {
-      console.log('calling again again')
+      // console.log('calling again again')
       sig.call()
     }, 1000)
   }, 2000)
 }, 5000)
-
-class Body extends Component {
-  counter = 0
-
-  @Component.on('fixedUpdate')
-  fixedUpdate(e: FixedUpdateEvent) {
-    this.counter++
-
-    if (this.counter >= 60) {
-      this.node.destroy()
-    }
-  }
-}
 
 @Node.template(() => (
   <>
@@ -165,18 +159,32 @@ class Player extends Node {
   @Node.child('gun')
   accessor gun!: Node
 
-  @Node.component(Body)
-  accessor body!: Body
+  @Node.component(Body2D)
+  accessor body!: Body2D
+
+  constructor(props: NodeProps) {
+    super(props)
+
+    this.body.setShape(
+      Matter.Bodies.rectangle(
+        this.position.x * 10,
+        this.position.y * 10,
+        50,
+        50
+      )
+    )
+  }
 
   @Node.on('fixedUpdate')
   fixedUpdate(e: FixedUpdateEvent) {}
 }
 
+engine.start()
+
 export const fase1 = (<>
   <Player position={[10, 10, 0]} />
 </>)()
 
-engine.clock.start()
 engine.root.add(fase1)
 
-console.log(engine.root)
+console.log(engine.root.children[0])

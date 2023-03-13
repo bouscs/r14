@@ -11,6 +11,7 @@
     "compile:watch": "npx tsc --project tsconfig.comp.json --watch"
   },
   "devDependencies": {
+    "@types/matter-js": "^0.18.2",
     "@types/three": "^0.149.0",
     "@typescript-eslint/eslint-plugin": "^5.50.0",
     "@typescript-eslint/parser": "^5.50.0",
@@ -26,6 +27,7 @@
   "dependencies": {
     "eventemitter3": "^5.0.0",
     "hyper-dom-expressions": "^0.35.15",
+    "matter-js": "^0.19.0",
     "three": "^0.150.1",
     "uuid": "^9.0.0"
   }
