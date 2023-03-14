@@ -16,10 +16,10 @@ export class MatterBody2D extends Component {
         y: -this.node.position.y
       },
       vertices: [
-        {x: -0.5, y: -0.5},
-        {x: 0.5, y: -0.5},
-        {x: 0.5, y: 0.5},
-        {x: -0.5, y: 0.5},
+        { x: -0.5, y: -0.5 },
+        { x: 0.5, y: -0.5 },
+        { x: 0.5, y: 0.5 },
+        { x: -0.5, y: 0.5 }
       ]
     })
 

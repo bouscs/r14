@@ -36,7 +36,7 @@ export class MatterManager {
         }
       },
       options: {
-        showDebug: true,
+        showDebug: true
       }
     })
     Matter.Render.setPixelRatio(this.render, 'auto' as any)

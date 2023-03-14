@@ -68,5 +68,7 @@ export abstract class Component<N extends Node = Node> {
     this.props = props
 
     this.node = node
+
+    this.node.components.push(this)
   }
 }

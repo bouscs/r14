@@ -1,6 +1,6 @@
 import { Class, Clock, bound } from 'aureamorum'
 import EventEmitter from 'eventemitter3'
-import { Node, RepeaterPlugin } from '..'
+import { Node, NodeEvent, RepeaterPlugin } from '..'
 
 export interface RepeaterEngineOptions {
   plugins?: Class<RepeaterPlugin>[]
@@ -48,16 +48,22 @@ export class RepeaterEngine extends EventEmitter {
 
   @bound
   private update() {
-    this.root.emit('update', {
-      time: this.clock.time,
-      delta: this.clock.delta
-    })
+    this.root.emit(
+      'update',
+      Object.assign(new NodeEvent(), {
+        time: this.clock.time,
+        delta: this.clock.delta
+      })
+    )
   }
 
   @bound
   private fixedUpdate() {
-    this.root.emit('fixedUpdate', {
-      time: this.clock.time
-    })
+    this.root.emit(
+      'fixedUpdate',
+      Object.assign(new NodeEvent(), {
+        time: this.clock.time
+      })
+    )
   }
 }

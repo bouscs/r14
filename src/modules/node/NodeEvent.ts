@@ -1,7 +1,7 @@
 export class NodeEvent {
   type = 'event'
 
-  private stoppedPropagation = false
+  stoppedPropagation = false
 
   private stoppedImmediatePropagation = false
 }

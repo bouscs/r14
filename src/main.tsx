@@ -12,11 +12,16 @@ import {
 } from './modules'
 import { MatterBody2D } from './modules/physics/MatterBody2D'
 import * as Matter from 'matter-js'
-
-const el = document.querySelector<HTMLDivElement>('#app')!
+import { PlanckPlugin } from './modules/physics-planck'
+import { Body2D } from './modules/physics/Body2D'
+import { RenderPlugin } from './modules/render'
+import { Camera } from './modules/camera'
+import { Sprite } from './modules/sprite'
+import { BoxCollider2D } from './modules/physics'
+import * as THREE from 'three'
 
 export const engine = new RepeaterEngine({
-  plugins: [MatterPlugin]
+  plugins: [PlanckPlugin, RenderPlugin]
 })
 
 console.log(engine)
@@ -97,7 +102,7 @@ node.emit('childEvent', new NodeEvent())
 engine.clock.fixedUpdateSignal
   .on(time => listener => {
     fixedUpdates++
-    el.innerHTML = String(Math.floor(fixedUpdates / 60))
+    // el.innerHTML = String(Math.floor(fixedUpdates / 60))
   })
   .until(sig)
   .then(() => {
@@ -143,6 +148,7 @@ setTimeout(() => {
 
 @Node.template(() => (
   <>
+    <Sprite texture="carroAzul.png" />
     <Node name="head">
       <Node name="camera" />
     </Node>
@@ -150,6 +156,9 @@ setTimeout(() => {
   </>
 ))
 class Player extends Node {
+  @Node.child(Sprite)
+  accessor sprite!: Sprite
+
   @Node.child('camera')
   accessor camera!: Node
 
@@ -159,26 +168,39 @@ class Player extends Node {
   @Node.child('gun')
   accessor gun!: Node
 
-  @Node.component(MatterBody2D)
-  accessor body!: MatterBody2D
+  @Node.component(Body2D, { type: 'dynamic' })
+  accessor body!: Body2D
 
-  
+  @Node.component(BoxCollider2D, { width: 1, height: 1 })
+  accessor collider!: BoxCollider2D
 
   constructor(props: NodeProps) {
     super(props)
-
   }
 
   @Node.on('fixedUpdate')
   fixedUpdate(e: FixedUpdateEvent) {}
 }
 
+class Spinner extends Node {
+  @Node.on('fixedUpdate')
+  fixedUpdate(e: FixedUpdateEvent) {
+    this.rotation = new THREE.Quaternion().setFromEuler(
+      new THREE.Euler(0, 0, e.time / 1000)
+    )
+  }
+}
+
 engine.start()
 
-export const fase1 = (<>
-  <Player position={[2, 2, 0]} />
-</>)()
+engine.root.add(
+  <>
+    <Player position={[0, 0, 0]} rotation={[0, 0, 30]} />
 
-engine.root.add(fase1)
+    <Spinner>
+      <Camera mode="orthographic" width={16} height={12} position={[0, 0, 5]} />
+    </Spinner>
+  </>
+)
 
 console.log(engine.root.children[0])

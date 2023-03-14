@@ -34,6 +34,8 @@ export class Node {
 
   name: string | symbol = 'Node'
 
+  readonly components: Component[] = []
+
   private _children: Node[] = []
   timeScale = 1
 
@@ -49,39 +51,35 @@ export class Node {
 
   localScale = new THREE.Vector3(1, 1, 1)
 
-  get localMatrix4() {
-    const matrix = new THREE.Matrix4()
-
-    matrix.compose(this.localPosition, this.localRotation, this.localScale)
-
-    return matrix
+  private _localMatrix = new THREE.Matrix4()
+  get localMatrix() {
+    return this._localMatrix
   }
 
-  get localMatrix3() {
-    const matrix = new THREE.Matrix3()
-
-    matrix.setFromMatrix4(this.localMatrix4)
-
-    return matrix
+  @bound
+  updateLocalMatrix() {
+    this._localMatrix = new THREE.Matrix4().compose(
+      this.localPosition,
+      this.localRotation,
+      this.localScale
+    )
   }
 
-  get worldMatrix4() {
-    const matrix = new THREE.Matrix4()
-
+  get worldMatrix(): THREE.Matrix4 {
     if (this.parent) {
-      matrix.multiplyMatrices(
-        this.parent.worldMatrix4,
-        this.parent.localMatrix4
+      return new THREE.Matrix4().multiplyMatrices(
+        this.parent.worldMatrix,
+        this.parent.localMatrix.clone()
       )
     }
 
-    return matrix
+    return new THREE.Matrix4()
   }
 
   get worldQuaternion() {
     const quaternion = new THREE.Quaternion()
 
-    quaternion.setFromRotationMatrix(this.worldMatrix4)
+    quaternion.setFromRotationMatrix(this.worldMatrix)
 
     return quaternion
   }
@@ -91,7 +89,7 @@ export class Node {
   }
 
   set position(position: THREE.Vector3) {
-    this.localPosition.copy(this.worldToLocal(position))
+    this.localPosition = this.worldToLocal(position)
   }
 
   get rotation() {
@@ -99,7 +97,7 @@ export class Node {
   }
 
   set rotation(rotation: THREE.Quaternion) {
-    this.localRotation.copy(this.worldToLocal(rotation))
+    this.localRotation = this.worldToLocal(rotation)
   }
 
   get scale() {
@@ -264,13 +262,13 @@ export class Node {
   /**
    * Create a component and add it to the node when the node is initialized.
    */
-  static component<This extends Node, Value extends Component<This>>(
-    componentClass: Class<Component<This>>,
-    props: Value['props'] = {} as any
+  static component<This extends Node, ComponentClass extends Class<Component>>(
+    componentClass: ComponentClass,
+    props: ConstructorParameters<ComponentClass>[1] = {} as any
   ) {
     return function (
       _: any,
-      context: ClassAccessorDecoratorContext<This, Value>
+      context: ClassAccessorDecoratorContext<This, InstanceType<ComponentClass>>
     ) {
       context.addInitializer(function (this: This) {
         const component = new componentClass(this, props)
@@ -284,9 +282,18 @@ export class Node {
   }
 
   constructor(props?: NodeProps) {
-    this.on('update', e => {
+    const onUpdate = ((e: UpdateEvent) => {
       this._delta = e.delta
-    })
+    }).bind(this)
+
+    const onFixedUpdate = ((e: FixedUpdateEvent) => {
+      this.updateLocalMatrix()
+    }).bind(this)
+
+    this.on('update', onUpdate)
+    this.on('fixedUpdate', onFixedUpdate)
+
+    this.updateLocalMatrix()
 
     this.destroySignal.once(() => {
       this.clearListeners()
@@ -346,24 +353,24 @@ export class Node {
   localToWorld(quaternion: THREE.Quaternion): THREE.Quaternion
   localToWorld(vector: THREE.Vector3): THREE.Vector3
   localToWorld(
-    vector: THREE.Vector3 | THREE.Quaternion
+    arg: THREE.Vector3 | THREE.Quaternion
   ): THREE.Vector3 | THREE.Quaternion {
-    if (vector instanceof THREE.Vector3) {
-      return vector.applyMatrix4(this.worldMatrix4)
+    if (arg instanceof THREE.Vector3) {
+      return arg.clone().applyMatrix4(this.worldMatrix)
     } else {
-      return vector.clone().premultiply(this.worldQuaternion)
+      return arg.clone().premultiply(this.worldQuaternion)
     }
   }
 
   worldToLocal(quaternion: THREE.Quaternion): THREE.Quaternion
   worldToLocal(vector: THREE.Vector3): THREE.Vector3
   worldToLocal(
-    vector: THREE.Vector3 | THREE.Quaternion
+    arg: THREE.Vector3 | THREE.Quaternion
   ): THREE.Vector3 | THREE.Quaternion {
-    if (vector instanceof THREE.Vector3) {
-      return vector.applyMatrix4(this.worldMatrix4.invert())
+    if (arg instanceof THREE.Vector3) {
+      return arg.clone().applyMatrix4(this.worldMatrix.clone().invert())
     } else {
-      return vector.clone().premultiply(this.worldQuaternion.invert())
+      return arg.clone().premultiply(this.worldQuaternion.clone().invert())
     }
   }
 
@@ -418,8 +425,8 @@ export class Node {
     eventName: EventName,
     e: this['$events'][EventName]
   ): void
-  emit(eventName: string, e: any): void
-  emit(eventName: string, e: any) {
+  emit(eventName: string, e: NodeEvent): void
+  emit(eventName: string, e: NodeEvent) {
     const callListener = (listener: NodeEventCallback) => {
       const result = listener(e)
 
@@ -443,6 +450,8 @@ export class Node {
 
       delete this._onceListeners[eventName]
     }
+
+    if (e.stoppedPropagation) return
 
     this.children.forEach(child => child.emit(eventName as any, e))
   }
@@ -574,10 +583,14 @@ export class Node {
     return this.children.find(child => child.find(arg0))!
   }
 
+  add(node: NodeTemplate): void
   add(node: Node): void
   add(nodes: Node[]): void
   add(node: Node | Node[]): void
-  add(node: Node | Node[]): void {
+  add(node: Node | Node[] | NodeTemplate): void {
+    if (typeof node === 'function') {
+      node = node()
+    }
     if (Array.isArray(node)) {
       node.forEach(child => this.add(child))
     } else {
@@ -585,7 +598,9 @@ export class Node {
     }
   }
 
-  create(): NodeTemplate | void {
-    return () => []
+  getComponent<T extends Component>(componentClass: Class<T>): T {
+    return this.components.find(
+      component => component instanceof componentClass
+    )! as T
   }
 }
