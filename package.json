@@ -28,6 +28,7 @@
     "eventemitter3": "^5.0.0",
     "hyper-dom-expressions": "^0.35.15",
     "matter-js": "^0.19.0",
+    "planck": "^1.0.0-alpha.4",
     "three": "^0.150.1",
     "uuid": "^9.0.0"
   }

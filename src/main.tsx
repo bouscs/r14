@@ -10,7 +10,7 @@ import {
   NodeProps,
   MatterPlugin
 } from './modules'
-import { Body2D } from './modules/physics/Body2D'
+import { MatterBody2D } from './modules/physics/MatterBody2D'
 import * as Matter from 'matter-js'
 
 const el = document.querySelector<HTMLDivElement>('#app')!
@@ -159,20 +159,14 @@ class Player extends Node {
   @Node.child('gun')
   accessor gun!: Node
 
-  @Node.component(Body2D)
-  accessor body!: Body2D
+  @Node.component(MatterBody2D)
+  accessor body!: MatterBody2D
+
+  
 
   constructor(props: NodeProps) {
     super(props)
 
-    this.body.setShape(
-      Matter.Bodies.rectangle(
-        this.position.x * 10,
-        this.position.y * 10,
-        50,
-        50
-      )
-    )
   }
 
   @Node.on('fixedUpdate')
@@ -182,7 +176,7 @@ class Player extends Node {
 engine.start()
 
 export const fase1 = (<>
-  <Player position={[10, 10, 0]} />
+  <Player position={[2, 2, 0]} />
 </>)()
 
 engine.root.add(fase1)

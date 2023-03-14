@@ -11,6 +11,6 @@
     }
   ],
   "settings": {
-    "typescript.tsdk": "node_modules\\typescript\\lib"
+    "typescript.tsdk": "r14\\node_modules\\typescript\\lib"
   }
 }
