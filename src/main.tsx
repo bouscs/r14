@@ -98,7 +98,7 @@ const node = new MyNode({
 // console.log(node)
 // console.log(node.child)
 
-node.emit('childEvent', new NodeEvent())
+node.emitDown('childEvent', new NodeEvent())
 
 engine.clock.fixedUpdateSignal
   .on(time => listener => {
@@ -121,7 +121,7 @@ engine.clock.fixedUpdateSignal
   })
 
 engine.clock.fixedUpdateSignal.on(time => listener => {
-  node.emit(
+  node.emitDown(
     'fixedUpdate',
     Object.assign(new NodeEvent(), { time, type: 'fixedUpdate' })
   )
@@ -197,6 +197,16 @@ class Player extends Node {
     //   planck.Vec2(e.movementX, -e.movementY),
     //   planck.Vec2(this.position.x, this.position.y)
     // )
+  }
+
+  @Node.on('awake')
+  awake() {
+    console.log('awake')
+  }
+
+  @Node.on('start')
+  start() {
+    console.log('start')
   }
 }
 

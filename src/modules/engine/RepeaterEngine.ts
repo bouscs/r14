@@ -48,7 +48,7 @@ export class RepeaterEngine extends EventEmitter {
 
   @bound
   private update() {
-    this.root.emit(
+    this.root.emitDown(
       'update',
       Object.assign(new NodeEvent(), {
         time: this.clock.time,
@@ -59,7 +59,7 @@ export class RepeaterEngine extends EventEmitter {
 
   @bound
   private fixedUpdate() {
-    this.root.emit(
+    this.root.emitDown(
       'fixedUpdate',
       Object.assign(new NodeEvent(), {
         time: this.clock.time

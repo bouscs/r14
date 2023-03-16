@@ -9,11 +9,14 @@ import {
 } from './types'
 import * as THREE from 'three'
 import { Component, EulerSimple, Vector3Simple } from '..'
+import { JSX } from 'r14-h/jsx-runtime'
 
 export interface NodeEventTypes extends Record<string | symbol, NodeEvent> {
   destroy: NodeEvent
   fixedUpdate: FixedUpdateEvent
   update: UpdateEvent
+  awake: NodeEvent
+  start: NodeEvent
 }
 
 export interface NodeProps {
@@ -253,7 +256,7 @@ export class Node {
   /**
    * Define the children of the node when the node is initialized.
    */
-  static template<T extends Class<Node>>(template: () => NodeTemplate) {
+  static template<T extends Class<Node>>(template: () => JSX.Element) {
     return function (constructor: T, context: ClassDecoratorContext<T>) {
       context.addInitializer(function (this: T) {
         this[nodeTemplateSymbol] = template
@@ -296,13 +299,10 @@ export class Node {
     this.on('update', onUpdate)
     this.on('fixedUpdate', onFixedUpdate)
 
+    // Update matrix
     this.updateLocalMatrix()
 
-    this.destroySignal.once(() => {
-      this.emit('destroy', new NodeEvent())
-      this.clearListeners()
-    })
-
+    // Handle props
     if (props) {
       if (props.name) {
         this.name = props.name
@@ -345,6 +345,7 @@ export class Node {
       }
     }
 
+    // Handle creating template children
     const template = getClass(this)[nodeTemplateSymbol] as
       | ((this: this) => NodeTemplate)
       | undefined
@@ -352,6 +353,15 @@ export class Node {
     if (template) {
       this.add(template.call(this)())
     }
+
+    // Queue awake event
+    queueMicrotask(() => {
+      this.emit('awake', new NodeEvent())
+
+      queueMicrotask(() => {
+        this.emit('start', new NodeEvent())
+      })
+    })
   }
 
   localToWorld(quaternion: THREE.Quaternion): THREE.Quaternion
@@ -454,10 +464,19 @@ export class Node {
 
       delete this._onceListeners[eventName]
     }
+  }
+
+  emitDown<EventName extends keyof this['$events']>(
+    eventName: EventName,
+    e: this['$events'][EventName]
+  ): void
+  emitDown(eventName: string, e: NodeEvent): void
+  emitDown(eventName: string, e: NodeEvent) {
+    this.emit(eventName, e)
 
     if (e.stoppedPropagation) return
 
-    this.children.forEach(child => child.emit(eventName as any, e))
+    this.children.forEach(child => child.emitDown(eventName as any, e))
   }
 
   emitUp<EventName extends keyof this['$events']>(
@@ -466,34 +485,12 @@ export class Node {
   ): void
   emitUp(eventName: string, e: NodeEvent): void
   emitUp(eventName: string, e: NodeEvent) {
-    const callListener = (listener: NodeEventCallback) => {
-      const result = listener(e)
-
-      if (typeof result === 'function') {
-        result(new NodeEventListener(this, eventName as any, listener))
-      }
-    }
-
-    if (this._listeners[eventName]) {
-      for (const listener of this._listeners[eventName]!) {
-        callListener(listener)
-      }
-    }
-
-    if (this._onceListeners[eventName]) {
-      for (const listener of this._onceListeners[eventName]!) {
-        callListener(listener)
-      }
-
-      this._onceListeners[eventName]!.clear()
-
-      delete this._onceListeners[eventName]
-    }
+    this.emit(eventName, e)
 
     if (e.stoppedPropagation) return
 
     if (this.parent) {
-      this.parent.emitUp(eventName as any, e)
+      this.parent.emitUp(eventName, e)
     }
   }
 
@@ -600,6 +597,8 @@ export class Node {
     this.destroySignal.call()
 
     this.children.forEach(child => child.destroy())
+
+    this.clearListeners()
   }
 
   find(nodeClass: Class<Node>): Node
@@ -624,18 +623,18 @@ export class Node {
     return this.children.find(child => child.find(arg0))!
   }
 
-  add(node: NodeTemplate): void
+  add(node: JSX.Element): void
   add(node: Node): void
   add(nodes: Node[]): void
   add(node: Node | Node[]): void
-  add(node: Node | Node[] | NodeTemplate): void {
+  add(node: Node | Node[] | JSX.Element): void {
     if (typeof node === 'function') {
-      node = node()
+      node = node() as any
     }
     if (Array.isArray(node)) {
       node.forEach(child => this.add(child))
     } else {
-      node.parent = this
+      ;(node as any).parent = this
     }
   }
 
