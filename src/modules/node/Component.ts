@@ -14,7 +14,10 @@ export abstract class Component<N extends Node = Node> {
 
   declare $events: NodeEventTypes
 
-  static on<This extends Component, EventName extends keyof This['$events']>(
+  static on<
+    This extends Component,
+    EventName extends keyof This['node']['$events']
+  >(
     event: EventName,
     options: {
       once?: boolean
@@ -24,30 +27,45 @@ export abstract class Component<N extends Node = Node> {
     return (
       originalMethod: (
         this: This,
-        e: This['$events'][EventName]
+        e: This['node']['$events'][EventName]
       ) =>
         | void
         | ((
-            listener: NodeEventListener<EventName, This['$events'][EventName]>
+            listener: NodeEventListener<
+              EventName,
+              This['node']['$events'][EventName]
+            >
           ) => void),
       context: ClassMethodDecoratorContext<
         This,
         (
           this: This,
-          e: This['$events'][EventName]
+          e: This['node']['$events'][EventName]
         ) =>
           | void
           | ((
-              listener: NodeEventListener<EventName, This['$events'][EventName]>
+              listener: NodeEventListener<
+                EventName,
+                This['node']['$events'][EventName]
+              >
             ) => void)
       >
     ) => {
       context.addInitializer(function (this: This) {
-        let listener: NodeEventListener<EventName, This['$events'][EventName]>
+        let listener: NodeEventListener<
+          EventName,
+          This['node']['$events'][EventName]
+        >
         if (options.once) {
-          listener = this.node.once(event, originalMethod.bind(this))
+          listener = this.node.once(
+            event as any,
+            originalMethod.bind(this) as any
+          )
         } else {
-          listener = this.node.on(event, originalMethod.bind(this))
+          listener = this.node.on(
+            event as any,
+            originalMethod.bind(this) as any
+          )
         }
 
         listener.until(this.node.destroySignal)

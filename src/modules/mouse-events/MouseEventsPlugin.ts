@@ -1,7 +1,7 @@
 import { RepeaterPlugin } from '../engine'
 import { MouseEventsManager } from './MouseEventsManager'
 
-declare module '../engine' {
+declare module '../engine/RepeaterEngine' {
   interface RepeaterEngine {
     mouseEvents: MouseEventsManager
   }

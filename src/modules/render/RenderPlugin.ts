@@ -1,7 +1,7 @@
 import { RepeaterPlugin } from '../engine'
 import { RenderManager } from './RenderManager'
 
-declare module '../engine' {
+declare module '../engine/RepeaterEngine' {
   interface RepeaterEngine {
     render: RenderManager
   }

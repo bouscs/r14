@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import { engine } from '../../main'
+import { engine } from '..'
 import { EventEmitter, bound } from 'aureamorum'
 import { InteractionManager } from 'three.interactive'
 import { Camera } from '../camera'

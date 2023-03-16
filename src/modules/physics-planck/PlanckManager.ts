@@ -1,5 +1,5 @@
 import * as planck from 'planck'
-import { engine } from '../../main'
+import { engine } from '..'
 import { bound } from 'aureamorum'
 
 export class PlanckManager {

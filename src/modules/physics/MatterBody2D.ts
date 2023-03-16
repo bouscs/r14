@@ -1,6 +1,6 @@
 import * as Matter from 'matter-js'
-import { engine } from '../../main'
-import { Component, FixedUpdateEvent, Node } from '../node'
+import { engine } from '..'
+import { Component, Node } from '../node'
 import { Vector3 } from 'three'
 
 export class MatterBody2D extends Component {

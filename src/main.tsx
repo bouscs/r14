@@ -1,29 +1,17 @@
-import { RepeaterEngine } from './modules'
-import { Signal, bound } from 'aureamorum'
+import { engine } from './modules'
+import { Signal } from 'aureamorum'
 import {
-  Component,
   FixedUpdateEvent,
   Node,
   NodeEvent,
-  NodeEventListener,
   NodeEventTypes,
-  NodeProps,
-  MatterPlugin
+  NodeProps
 } from './modules'
-import { MatterBody2D } from './modules/physics/MatterBody2D'
-import * as Matter from 'matter-js'
-import { PlanckPlugin } from './modules/physics-planck'
 import { Body2D } from './modules/physics/Body2D'
-import { RenderPlugin } from './modules/render'
 import { Camera } from './modules/camera'
 import { Sprite } from './modules/sprite'
 import { BoxCollider2D } from './modules/physics'
-import * as THREE from 'three'
-import * as planck from 'planck'
-
-export const engine = new RepeaterEngine({
-  plugins: [PlanckPlugin, RenderPlugin]
-})
+import { InteractiveEvents } from './modules/interactive'
 
 console.log(engine)
 
@@ -157,22 +145,13 @@ setTimeout(() => {
   </>
 ))
 class Player extends Node {
-  declare $events: NodeEventTypes & {
-    click: NodeEvent
-    pointerMove: NodeEvent & {
-      movementX: number
-      movementY: number
-    }
-  }
+  declare $events: NodeEventTypes & InteractiveEvents
 
   @Node.child(Sprite)
   accessor sprite!: Sprite
 
   @Node.child('camera')
   accessor camera!: Node
-
-  @Node.child('head')
-  accessor head!: Node
 
   @Node.child('gun')
   accessor gun!: Node
@@ -191,7 +170,7 @@ class Player extends Node {
   fixedUpdate(e: FixedUpdateEvent) {}
 
   @Node.on('pointerMove')
-  pointerMove(e: NodeEvent & { movementX: number; movementY: number }) {
+  pointerMove(e) {
     // console.log(e)
     // this.body.body.applyForce(
     //   planck.Vec2(e.movementX, -e.movementY),

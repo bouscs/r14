@@ -1,4 +1,4 @@
-import { engine } from '../../main'
+import { engine } from '..'
 import { Interactive } from '../interactive'
 import { Node, NodeProps } from '../node'
 import * as THREE from 'three'

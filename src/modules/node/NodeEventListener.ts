@@ -3,16 +3,20 @@ import { Node } from './Node'
 import { NodeEvent } from './NodeEvent'
 
 export class NodeEventListener<
-  EventName extends string | symbol | number = string | symbol | number,
-  EventData = NodeEvent
+  EventName extends string | number | symbol = any,
+  EventData = any
 > {
   callback: (e: EventData) => void
-  emitter: Node
+  emitter: Node & {
+    $events: any
+  }
 
   event: EventName
 
   constructor(
-    emitter: Node,
+    emitter: Node & {
+      $events: any
+    },
     event: EventName,
     callback: (e: EventData) => void
   ) {
@@ -22,7 +26,7 @@ export class NodeEventListener<
   }
 
   off() {
-    this.emitter.off(this.event, this.callback as any)
+    this.emitter.off(this.event, this.callback)
   }
 
   until<T>(promise: Promise<T>): Promise<T>

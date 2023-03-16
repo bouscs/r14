@@ -1,13 +1,13 @@
 import { InteractionManager } from 'three.interactive'
-import { engine } from '../../main'
+import { engine } from '..'
 import { Node, NodeProps } from '../node'
 
 import * as THREE from 'three'
 
-export type CameraProps = {
+export type CameraProps<T extends Node> = {
   near?: number
   far?: number
-} & NodeProps &
+} & NodeProps<T> &
   (OrthographicCameraProps | PerspectiveCameraProps)
 
 export interface OrthographicCameraProps {
@@ -23,7 +23,7 @@ export interface PerspectiveCameraProps {
 }
 
 export class Camera extends Node {
-  declare props: CameraProps
+  declare props: CameraProps<this>
 
   camera!: THREE.Camera
 
@@ -41,7 +41,7 @@ export class Camera extends Node {
     this.setCamera()
   }
 
-  constructor(props: CameraProps) {
+  constructor(props: CameraProps<Camera>) {
     super(props)
 
     this._mode = props.mode

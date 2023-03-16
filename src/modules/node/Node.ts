@@ -2,6 +2,7 @@ import { Class, EventEmitter, Signal, bound, getClass, rad } from 'aureamorum'
 import { NodeEvent } from './NodeEvent'
 import { NodeEventListener } from './NodeEventListener'
 import {
+  AnyNode,
   FixedUpdateEvent,
   NodeEventCallback,
   NodeTemplate,
@@ -11,7 +12,7 @@ import * as THREE from 'three'
 import { Component, EulerSimple, Vector3Simple } from '..'
 import { JSX } from 'r14-h/jsx-runtime'
 
-export interface NodeEventTypes extends Record<string | symbol, NodeEvent> {
+export interface NodeEventTypes {
   destroy: NodeEvent
   fixedUpdate: FixedUpdateEvent
   update: UpdateEvent
@@ -19,13 +20,29 @@ export interface NodeEventTypes extends Record<string | symbol, NodeEvent> {
   start: NodeEvent
 }
 
-export interface NodeProps {
+export type NodeProps<T extends Node = AnyNode> = {
   name?: string | symbol
   position?: Vector3Simple
   rotation?: EulerSimple
   scale?: Vector3Simple
 
   children?: Node[]
+
+  components?: () => Component[] | Component
+} & {
+  [Key in keyof Omit<T['$events'], symbol> as `on:${Key}`]?: NodeEventCallback<
+    Key,
+    T['$events'][Key]
+  >
+} & {
+  [Key in keyof Omit<
+    T['$events'],
+    symbol
+  > as `once:${Key}`]?: NodeEventCallback<Key, T['$events'][Key]>
+} & {
+  [key: `on:${string}`]: NodeEventCallback<any, NodeEvent>
+} & {
+  [key: `once:${string}`]: NodeEventCallback<any, NodeEvent>
 }
 
 export const nodeTemplateSymbol = Symbol('nodeTemplate')
@@ -37,7 +54,7 @@ export class Node {
 
   name: string | symbol = 'Node'
 
-  props: NodeProps
+  props: NodeProps<this>
 
   readonly components: Component[] = []
 
@@ -286,8 +303,8 @@ export class Node {
     }
   }
 
-  constructor(props?: NodeProps) {
-    this.props = props || {}
+  constructor(props?: NodeProps<Node>) {
+    this.props = props || ({} as any)
     const onUpdate = ((e: UpdateEvent) => {
       this._delta = e.delta
     }).bind(this)
@@ -343,6 +360,14 @@ export class Node {
           this.add(props.children)
         }
       }
+
+      // Handle "on:" props
+      Object.keys(props)
+        .filter(key => key.startsWith('on:'))
+        .map(key => key.slice(3))
+        .forEach(callback => {
+          this.on(callback as any, props[`on:${callback}`]!.bind(this)!)
+        })
     }
 
     // Handle creating template children

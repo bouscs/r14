@@ -1,6 +1,9 @@
 import { Class, Clock, bound } from 'aureamorum'
 import EventEmitter from 'eventemitter3'
-import { Node, NodeEvent, RepeaterPlugin } from '..'
+import { RepeaterPlugin } from '.'
+import { PlanckPlugin } from '../physics-planck'
+import { RenderPlugin } from '../render'
+import { Node, NodeEvent } from '../node'
 
 export interface RepeaterEngineOptions {
   plugins?: Class<RepeaterPlugin>[]
@@ -67,3 +70,7 @@ export class RepeaterEngine extends EventEmitter {
     )
   }
 }
+
+export const engine = new RepeaterEngine({
+  plugins: [PlanckPlugin, RenderPlugin]
+})

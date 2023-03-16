@@ -2,7 +2,7 @@ import * as planck from 'planck'
 import * as THREE from 'three'
 
 import { Component, Node } from '../node'
-import { engine } from '../../main'
+import { engine } from '..'
 
 export interface Body2DProps {
   type?: 'static' | 'dynamic' | 'kinematic'

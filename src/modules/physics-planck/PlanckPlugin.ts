@@ -1,7 +1,7 @@
-import { RepeaterPlugin } from '../engine'
+import { RepeaterPlugin } from '../engine/RepeaterPlugin'
 import { PlanckManager } from './PlanckManager'
 
-declare module '../engine' {
+declare module '../engine/RepeaterEngine' {
   interface RepeaterEngine {
     planck: PlanckManager
   }
