@@ -1,4 +1,5 @@
 import { engine } from '../../main'
+import { Interactive } from '../interactive'
 import { Node, NodeProps } from '../node'
 import * as THREE from 'three'
 
@@ -10,6 +11,9 @@ export class Sprite extends Node {
   sprite: THREE.Mesh
 
   material: THREE.Material
+
+  // @Node.component(Interactive, {})
+  accessor interactive!: Interactive
 
   constructor(props: SpriteProps) {
     super(props)
@@ -24,6 +28,8 @@ export class Sprite extends Node {
 
     this.sprite = new THREE.Mesh(geometry, this.material)
     engine.render.scene.add(this.sprite)
+
+    this.interactive = new Interactive(this, {})
   }
 
   @Node.on('update')

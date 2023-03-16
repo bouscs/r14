@@ -34,6 +34,8 @@ export class Node {
 
   name: string | symbol = 'Node'
 
+  props: NodeProps
+
   readonly components: Component[] = []
 
   private _children: Node[] = []
@@ -282,6 +284,7 @@ export class Node {
   }
 
   constructor(props?: NodeProps) {
+    this.props = props || {}
     const onUpdate = ((e: UpdateEvent) => {
       this._delta = e.delta
     }).bind(this)
@@ -296,6 +299,7 @@ export class Node {
     this.updateLocalMatrix()
 
     this.destroySignal.once(() => {
+      this.emit('destroy', new NodeEvent())
       this.clearListeners()
     })
 
@@ -454,6 +458,43 @@ export class Node {
     if (e.stoppedPropagation) return
 
     this.children.forEach(child => child.emit(eventName as any, e))
+  }
+
+  emitUp<EventName extends keyof this['$events']>(
+    eventName: EventName,
+    e: this['$events'][EventName]
+  ): void
+  emitUp(eventName: string, e: NodeEvent): void
+  emitUp(eventName: string, e: NodeEvent) {
+    const callListener = (listener: NodeEventCallback) => {
+      const result = listener(e)
+
+      if (typeof result === 'function') {
+        result(new NodeEventListener(this, eventName as any, listener))
+      }
+    }
+
+    if (this._listeners[eventName]) {
+      for (const listener of this._listeners[eventName]!) {
+        callListener(listener)
+      }
+    }
+
+    if (this._onceListeners[eventName]) {
+      for (const listener of this._onceListeners[eventName]!) {
+        callListener(listener)
+      }
+
+      this._onceListeners[eventName]!.clear()
+
+      delete this._onceListeners[eventName]
+    }
+
+    if (e.stoppedPropagation) return
+
+    if (this.parent) {
+      this.parent.emitUp(eventName as any, e)
+    }
   }
 
   clearListeners() {

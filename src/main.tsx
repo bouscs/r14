@@ -19,6 +19,7 @@ import { Camera } from './modules/camera'
 import { Sprite } from './modules/sprite'
 import { BoxCollider2D } from './modules/physics'
 import * as THREE from 'three'
+import * as planck from 'planck'
 
 export const engine = new RepeaterEngine({
   plugins: [PlanckPlugin, RenderPlugin]
@@ -156,6 +157,14 @@ setTimeout(() => {
   </>
 ))
 class Player extends Node {
+  declare $events: NodeEventTypes & {
+    click: NodeEvent
+    pointerMove: NodeEvent & {
+      movementX: number
+      movementY: number
+    }
+  }
+
   @Node.child(Sprite)
   accessor sprite!: Sprite
 
@@ -180,14 +189,23 @@ class Player extends Node {
 
   @Node.on('fixedUpdate')
   fixedUpdate(e: FixedUpdateEvent) {}
+
+  @Node.on('pointerMove')
+  pointerMove(e: NodeEvent & { movementX: number; movementY: number }) {
+    // console.log(e)
+    // this.body.body.applyForce(
+    //   planck.Vec2(e.movementX, -e.movementY),
+    //   planck.Vec2(this.position.x, this.position.y)
+    // )
+  }
 }
 
 class Spinner extends Node {
   @Node.on('fixedUpdate')
   fixedUpdate(e: FixedUpdateEvent) {
-    this.rotation = new THREE.Quaternion().setFromEuler(
-      new THREE.Euler(0, 0, e.time / 1000)
-    )
+    // this.rotation = new THREE.Quaternion().setFromEuler(
+    //   new THREE.Euler(0, 0, e.time / 1000)
+    // )
   }
 }
 
