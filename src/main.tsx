@@ -97,7 +97,7 @@ const node = new MyNode({
 // console.log(node)
 // console.log(node.child)
 
-node.emit('childEvent', new NodeEvent())
+node.emitDown('childEvent', new NodeEvent())
 
 engine.clock.fixedUpdateSignal
   .on(time => listener => {
@@ -120,7 +120,7 @@ engine.clock.fixedUpdateSignal
   })
 
 engine.clock.fixedUpdateSignal.on(time => listener => {
-  node.emit(
+  node.emitDown(
     'fixedUpdate',
     Object.assign(new NodeEvent(), { time, type: 'fixedUpdate' })
   )
@@ -180,13 +180,23 @@ class Player extends Node {
 
   @Node.on('fixedUpdate')
   fixedUpdate(e: FixedUpdateEvent) {}
+
+  @Node.on('awake')
+  awake() {
+    console.log('awake')
+  }
+
+  @Node.on('start')
+  start() {
+    console.log('start')
+  }
 }
 
 class Spinner extends Node {
   @Node.on('fixedUpdate')
   fixedUpdate(e: FixedUpdateEvent) {
     this.rotation = new THREE.Quaternion().setFromEuler(
-      new THREE.Euler(0, 0, e.time / 1000)
+      new THREE.Euler(0, 0, Math.sin(e.time / 1000))
     )
   }
 }
@@ -195,8 +205,8 @@ engine.start()
 
 engine.root.add(
   <>
-    <Player position={[0, 0, 0]} rotation={[0, 0, 30]} />
-
+    <Player position={[0, 0, 0]}  rotation={[0, 0, 30]} />
+  
     <Spinner>
       <Camera mode="orthographic" width={16} height={12} position={[0, 0, 5]} />
     </Spinner>
