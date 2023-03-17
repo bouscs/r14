@@ -1,6 +1,7 @@
-import { EventEmitter, Signal } from 'aureamorum'
-import { Node, NodeEventTypes } from './Node'
+import { Class, EventEmitter, Signal } from 'aureamorum'
+import { Node } from './Node'
 import { NodeEventListener } from './NodeEventListener'
+import { AnyNode, GetEvents } from './types'
 
 export interface ComponentProps {}
 
@@ -8,15 +9,28 @@ export interface Component {
   new (node: Node, props: Record<string, any>): Component
 }
 
-export abstract class Component<N extends Node = Node> {
-  node!: N
+export type ComponentNode<T extends Component> = Node & {
+  $components: T
+}
+
+export abstract class Component {
+  node!: Node
   props: ComponentProps
 
-  declare $events: NodeEventTypes
+  declare $events: unknown
+
+  static define<C extends Class<Component>>(
+    componentClass: C,
+    props: ConstructorParameters<C>[1]
+  ) {
+    return function (this: Node) {
+      return new componentClass(this, props)
+    }
+  }
 
   static on<
     This extends Component,
-    EventName extends keyof This['node']['$events']
+    EventName extends keyof GetEvents<This['node']>
   >(
     event: EventName,
     options: {
@@ -27,35 +41,18 @@ export abstract class Component<N extends Node = Node> {
     return (
       originalMethod: (
         this: This,
-        e: This['node']['$events'][EventName]
-      ) =>
-        | void
-        | ((
-            listener: NodeEventListener<
-              EventName,
-              This['node']['$events'][EventName]
-            >
-          ) => void),
+        e: GetEvents<This['node']>[EventName]
+      ) => void | ((listener: NodeEventListener) => void),
       context: ClassMethodDecoratorContext<
         This,
         (
           this: This,
-          e: This['node']['$events'][EventName]
-        ) =>
-          | void
-          | ((
-              listener: NodeEventListener<
-                EventName,
-                This['node']['$events'][EventName]
-              >
-            ) => void)
+          e: GetEvents<This['node']>[EventName]
+        ) => void | ((listener: NodeEventListener) => void)
       >
     ) => {
       context.addInitializer(function (this: This) {
-        let listener: NodeEventListener<
-          EventName,
-          This['node']['$events'][EventName]
-        >
+        let listener: NodeEventListener
         if (options.once) {
           listener = this.node.once(
             event as any,
@@ -82,7 +79,7 @@ export abstract class Component<N extends Node = Node> {
     }
   }
 
-  constructor(node: N, props: ComponentProps) {
+  constructor(node: Node, props: ComponentProps) {
     this.props = props
 
     this.node = node

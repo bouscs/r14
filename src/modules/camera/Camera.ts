@@ -41,7 +41,7 @@ export class Camera extends Node {
     this.setCamera()
   }
 
-  constructor(props: CameraProps<Camera>) {
+  constructor(props: Camera['props']) {
     super(props)
 
     this._mode = props.mode
