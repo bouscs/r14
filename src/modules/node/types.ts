@@ -1,11 +1,8 @@
 import { Node, NodeEvent, NodeEventListener } from '.'
 
-export type NodeEventCallback<
-  EventName extends string | number | symbol = any,
-  EventData = any
-> = (
+export type NodeEventCallback<EventData = any> = (
   e: EventData
-) => void | ((listener: NodeEventListener<EventName, EventData>) => void)
+) => void | ((listener: NodeEventListener) => void)
 
 export type FixedUpdateEvent = NodeEvent & {
   time: number
@@ -22,4 +19,17 @@ export type NodeTemplate = {
 
 export type AnyNode = Node & {
   $events: any
+  $components: any
 }
+
+export interface NodeEventTypes {
+  destroy: NodeEvent
+  fixedUpdate: FixedUpdateEvent
+  update: UpdateEvent
+  awake: NodeEvent
+  start: NodeEvent
+}
+
+export type GetEvents<T extends AnyNode> = T['$events'] &
+  NodeEventTypes &
+  T['$components']['$events']

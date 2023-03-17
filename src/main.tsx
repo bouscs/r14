@@ -1,4 +1,4 @@
-import { engine } from './modules'
+import { Component, engine } from './modules'
 import { Signal } from 'aureamorum'
 import {
   FixedUpdateEvent,
@@ -11,7 +11,10 @@ import { Body2D } from './modules/physics/Body2D'
 import { Camera } from './modules/camera'
 import { Sprite } from './modules/sprite'
 import { BoxCollider2D } from './modules/physics'
-import { InteractiveEvents } from './modules/interactive'
+import { Interactive, PointerNodeEvent } from './modules/interactive'
+import * as THREE from 'three'
+import * as planck from 'planck'
+import { CircleCollider2D } from './modules/physics/CircleCollider2D'
 
 console.log(engine)
 
@@ -21,7 +24,7 @@ const sig = new Signal()
 class ChildNode extends Node {
   name = 'child'
 
-  declare $events: NodeEventTypes & {
+  declare $events: Node['$events'] & {
     childEvent: NodeEvent
   }
 
@@ -145,7 +148,7 @@ setTimeout(() => {
   </>
 ))
 class Player extends Node {
-  declare $events: NodeEventTypes & InteractiveEvents
+  declare $events: Interactive['$events']
 
   @Node.child(Sprite)
   accessor sprite!: Sprite
@@ -159,28 +162,28 @@ class Player extends Node {
   @Node.component(Body2D, { type: 'dynamic' })
   accessor body!: Body2D
 
-  @Node.component(BoxCollider2D, { width: 1, height: 1 })
-  accessor collider!: BoxCollider2D
+  // @Node.component(BoxCollider2D, { width: 1, height: 1 })
+  // accessor collider!: BoxCollider2D
 
-  constructor(props: NodeProps) {
-    super(props)
+  @Node.component(CircleCollider2D)
+  accessor collider!: CircleCollider2D
+
+  @Node.on('awake')
+  awake() {
+    console.log('awake')
+
+    this.sprite.interactive.activate()
   }
 
   @Node.on('fixedUpdate')
   fixedUpdate(e: FixedUpdateEvent) {}
 
-  @Node.on('pointerMove')
-  pointerMove(e) {
-    // console.log(e)
-    // this.body.body.applyForce(
-    //   planck.Vec2(e.movementX, -e.movementY),
-    //   planck.Vec2(this.position.x, this.position.y)
-    // )
-  }
-
-  @Node.on('awake')
-  awake() {
-    console.log('awake')
+  @Node.on('drag')
+  onDrag(e: PointerNodeEvent) {
+    this.body.body.applyForce(
+      planck.Vec2(e.originalEvent.movementX, -e.originalEvent.movementY),
+      planck.Vec2(this.position.x, this.position.y)
+    )
   }
 
   @Node.on('start')

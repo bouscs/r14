@@ -4,6 +4,7 @@ import { NodeEventListener } from './NodeEventListener'
 import {
   AnyNode,
   FixedUpdateEvent,
+  GetEvents,
   NodeEventCallback,
   NodeTemplate,
   UpdateEvent
@@ -12,15 +13,7 @@ import * as THREE from 'three'
 import { Component, EulerSimple, Vector3Simple } from '..'
 import { JSX } from 'r14-h/jsx-runtime'
 
-export interface NodeEventTypes {
-  destroy: NodeEvent
-  fixedUpdate: FixedUpdateEvent
-  update: UpdateEvent
-  awake: NodeEvent
-  start: NodeEvent
-}
-
-export type NodeProps<T extends Node = AnyNode> = {
+export type NodeProps<T extends Node = Node> = {
   name?: string | symbol
   position?: Vector3Simple
   rotation?: EulerSimple
@@ -28,21 +21,16 @@ export type NodeProps<T extends Node = AnyNode> = {
 
   children?: Node[]
 
-  components?: () => Component[] | Component
+  components?: (() => T['$components'])[]
 } & {
   [Key in keyof Omit<T['$events'], symbol> as `on:${Key}`]?: NodeEventCallback<
-    Key,
     T['$events'][Key]
   >
 } & {
   [Key in keyof Omit<
     T['$events'],
     symbol
-  > as `once:${Key}`]?: NodeEventCallback<Key, T['$events'][Key]>
-} & {
-  [key: `on:${string}`]: NodeEventCallback<any, NodeEvent>
-} & {
-  [key: `once:${string}`]: NodeEventCallback<any, NodeEvent>
+  > as `once:${Key}`]?: NodeEventCallback<T['$events'][Key]>
 }
 
 export const nodeTemplateSymbol = Symbol('nodeTemplate')
@@ -56,7 +44,7 @@ export class Node {
 
   props: NodeProps<this>
 
-  readonly components: Component[] = []
+  readonly components: this['$components'][] = []
 
   private _children: Node[] = []
   timeScale = 1
@@ -133,7 +121,9 @@ export class Node {
   /**
    * Pseudo-property to define the events that can be emitted by the node.
    */
-  declare $events: NodeEventTypes
+  declare $events: unknown
+
+  declare $components: Component
 
   private _parent: Node | null = null
 
@@ -143,15 +133,11 @@ export class Node {
   >()
 
   private _listeners: {
-    [K in keyof this['$events']]?: Set<
-      NodeEventCallback<keyof this['$events'], any>
-    >
+    [K in keyof GetEvents<this>]?: Set<NodeEventCallback<any>>
   } = {}
 
   private _onceListeners: {
-    [K in keyof this['$events']]?: Set<
-      NodeEventCallback<keyof this['$events'], any>
-    >
+    [K in keyof GetEvents<this>]?: Set<NodeEventCallback<any>>
   } = {}
 
   get children() {
@@ -189,7 +175,7 @@ export class Node {
   /**
    * Add method as a listener to the given event when the node is initialized. The listener will be removed when the node is destroyed.
    */
-  static on<This extends Node, EventName extends keyof This['$events']>(
+  static on<This extends Node, EventName extends keyof GetEvents<This>>(
     event: EventName,
     options: {
       once?: boolean
@@ -199,26 +185,18 @@ export class Node {
     return (
       originalMethod: (
         this: This,
-        e: This['$events'][EventName]
-      ) =>
-        | void
-        | ((
-            listener: NodeEventListener<EventName, This['$events'][EventName]>
-          ) => void),
+        e: GetEvents<This>[EventName]
+      ) => void | ((listener: NodeEventListener) => void),
       context: ClassMethodDecoratorContext<
         This,
         (
           this: This,
-          e: This['$events'][EventName]
-        ) =>
-          | void
-          | ((
-              listener: NodeEventListener<EventName, This['$events'][EventName]>
-            ) => void)
+          e: GetEvents<This>[EventName]
+        ) => void | ((listener: NodeEventListener) => void)
       >
     ) => {
       context.addInitializer(function (this: This) {
-        let listener: NodeEventListener<EventName, This['$events'][EventName]>
+        let listener: NodeEventListener
         if (options.once) {
           listener = this.once(event, originalMethod.bind(this))
         } else {
@@ -286,18 +264,27 @@ export class Node {
    */
   static component<This extends Node, ComponentClass extends Class<Component>>(
     componentClass: ComponentClass,
-    props: ConstructorParameters<ComponentClass>[1] = {} as any
+    props:
+      | ConstructorParameters<ComponentClass>[1]
+      | ((this: This) => ConstructorParameters<ComponentClass>[1]) = {} as any
   ) {
     return function (
       _: any,
       context: ClassAccessorDecoratorContext<This, InstanceType<ComponentClass>>
     ) {
       context.addInitializer(function (this: This) {
-        const component = new componentClass(this, props)
+        this.once('awake', () => {
+          if (typeof props === 'function') {
+            props = (
+              props as (this: This) => ConstructorParameters<ComponentClass>[1]
+            ).call(this)
+          }
+          const component = new componentClass(this, props)
 
-        Object.defineProperty(this, context.name, {
-          value: component,
-          writable: false
+          Object.defineProperty(this, context.name, {
+            value: component,
+            writable: false
+          })
         })
       })
     }
@@ -366,8 +353,26 @@ export class Node {
         .filter(key => key.startsWith('on:'))
         .map(key => key.slice(3))
         .forEach(callback => {
-          this.on(callback as any, props[`on:${callback}`]!.bind(this)!)
+          this.on(callback as any, props[`on:${callback}`]!.bind(this)! as any)
         })
+
+      // Handle "once:" props
+      Object.keys(props)
+        .filter(key => key.startsWith('once:'))
+        .map(key => key.slice(5))
+        .forEach(callback => {
+          this.once(
+            callback as any,
+            props[`once:${callback}`]!.bind(this)! as any
+          )
+        })
+
+      // Handle component props
+      if (props.components) {
+        props.components.forEach(f => {
+          f.call(this)
+        })
+      }
     }
 
     // Handle creating template children
@@ -413,10 +418,10 @@ export class Node {
     }
   }
 
-  on<EventName extends keyof this['$events']>(
+  on<EventName extends keyof GetEvents<this>>(
     eventName: EventName,
-    listener: NodeEventCallback<EventName, this['$events'][EventName]>
-  ): NodeEventListener<EventName, this['$events'][EventName]> {
+    listener: NodeEventCallback<GetEvents<this>[EventName]>
+  ): NodeEventListener {
     if (!this._listeners[eventName]) {
       this._listeners[eventName] = new Set()
     }
@@ -426,10 +431,10 @@ export class Node {
     return new NodeEventListener(this, eventName, listener)
   }
 
-  once<EventName extends keyof this['$events']>(
+  once<EventName extends keyof GetEvents<this>>(
     eventName: EventName,
-    listener: NodeEventCallback<EventName, this['$events'][EventName]>
-  ): NodeEventListener<EventName, this['$events'][EventName]> {
+    listener: NodeEventCallback<GetEvents<this>[EventName]>
+  ): NodeEventListener {
     if (!this._onceListeners[eventName]) {
       this._onceListeners[eventName] = new Set()
     }
@@ -439,9 +444,9 @@ export class Node {
     return new NodeEventListener(this, eventName, listener)
   }
 
-  off<EventName extends keyof this['$events']>(
+  off<EventName extends keyof GetEvents<this>>(
     eventName: EventName,
-    listener: NodeEventCallback<EventName, this['$events'][EventName]>
+    listener: NodeEventCallback<GetEvents<this>[EventName]>
   ): void {
     if (this._listeners[eventName]) {
       this._listeners[eventName]!.delete(listener as any)
@@ -460,17 +465,17 @@ export class Node {
     }
   }
 
-  emit<EventName extends keyof this['$events']>(
+  emit<EventName extends keyof GetEvents<this>>(
     eventName: EventName,
-    e: this['$events'][EventName]
+    e: GetEvents<this>[EventName]
   ): void
   emit(eventName: string, e: NodeEvent): void
-  emit(eventName: string, e: NodeEvent) {
+  emit(eventName: string, e: any) {
     const callListener = (listener: NodeEventCallback) => {
       const result = listener(e)
 
       if (typeof result === 'function') {
-        result(new NodeEventListener(this, eventName as any, listener))
+        result(new NodeEventListener(this, eventName, listener))
       }
     }
 
@@ -491,25 +496,25 @@ export class Node {
     }
   }
 
-  emitDown<EventName extends keyof this['$events']>(
+  emitDown<EventName extends keyof GetEvents<this>>(
     eventName: EventName,
-    e: this['$events'][EventName]
+    e: GetEvents<this>[EventName]
   ): void
   emitDown(eventName: string, e: NodeEvent): void
-  emitDown(eventName: string, e: NodeEvent) {
+  emitDown(eventName: string, e: any) {
     this.emit(eventName, e)
 
     if (e.stoppedPropagation) return
 
-    this.children.forEach(child => child.emitDown(eventName as any, e))
+    this.children.forEach(child => child.emitDown(eventName, e))
   }
 
-  emitUp<EventName extends keyof this['$events']>(
+  emitUp<EventName extends keyof GetEvents<this>>(
     eventName: EventName,
-    e: this['$events'][EventName]
+    e: GetEvents<this>[EventName]
   ): void
   emitUp(eventName: string, e: NodeEvent): void
-  emitUp(eventName: string, e: NodeEvent) {
+  emitUp(eventName: string, e: any) {
     this.emit(eventName, e)
 
     if (e.stoppedPropagation) return
@@ -524,10 +529,10 @@ export class Node {
     this._onceListeners = {}
   }
 
-  wait<EventName extends keyof this['$events']>(
+  wait<EventName extends keyof GetEvents<this>>(
     eventName: EventName,
     times = 1
-  ): Promise<this['$events'][EventName]> {
+  ): Promise<GetEvents<this>[EventName]> {
     return new Promise((resolve, reject) => {
       const abort = new Signal()
       abort.once(reject)
@@ -663,9 +668,9 @@ export class Node {
     }
   }
 
-  getComponent<T extends Component>(componentClass: Class<T>): T {
+  getComponent<T extends Class<this['$components']>>(componentClass: T) {
     return this.components.find(
-      component => component instanceof componentClass
-    )! as T
+      (component: any) => component instanceof componentClass
+    )! as InstanceType<T>
   }
 }
