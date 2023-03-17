@@ -72,9 +72,9 @@ export class Vector3 {
     this._v = new THREE.Vector3()
 
     if (args.length === 1 && args[0] instanceof Vector3) {
-      this._x = args[0]._x
-      this._y = args[0]._y
-      this._z = args[0]._z
+      this._x = args[0].x
+      this._y = args[0].y
+      this._z = args[0].z
     } else {
       args = args.map(arg => arg || 0)
 
