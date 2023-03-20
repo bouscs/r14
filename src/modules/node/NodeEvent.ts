@@ -3,5 +3,5 @@ export class NodeEvent {
 
   stoppedPropagation = false
 
-  private stoppedImmediatePropagation = false
+  stoppedImmediatePropagation = false
 }

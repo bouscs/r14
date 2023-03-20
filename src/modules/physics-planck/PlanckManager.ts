@@ -28,8 +28,6 @@ export class PlanckManager {
     this.worldBounds.createFixture(
       planck.Edge(planck.Vec2(4, -3), planck.Vec2(4, 3))
     )
-
-    console.log(this.worldBounds)
   }
 
   @bound

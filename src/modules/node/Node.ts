@@ -55,15 +55,19 @@ export class Node {
     return this._delta * this.timeScale * (this.parent?.timeScale ?? 1)
   }
 
-  localPosition = new THREE.Vector3()
+  @Node.watch
+  accessor localPosition = new THREE.Vector3()
 
-  localRotation = new THREE.Quaternion()
+  @Node.watch
+  accessor localRotation = new THREE.Quaternion()
 
-  localScale = new THREE.Vector3(1, 1, 1)
+  @Node.watch
+  accessor localScale = new THREE.Vector3(1, 1, 1)
 
   private _localMatrix = new THREE.Matrix4()
+
   get localMatrix() {
-    return this._localMatrix
+    return this._localMatrix.clone()
   }
 
   @bound
@@ -133,11 +137,11 @@ export class Node {
   >()
 
   private _listeners: {
-    [K in keyof GetEvents<this>]?: Set<NodeEventCallback<any>>
+    [K in keyof GetEvents<this>]?: Set<NodeEventCallback>
   } = {}
 
   private _onceListeners: {
-    [K in keyof GetEvents<this>]?: Set<NodeEventCallback<any>>
+    [K in keyof GetEvents<this>]?: Set<NodeEventCallback>
   } = {}
 
   get children() {
@@ -159,8 +163,14 @@ export class Node {
 
     this._parent = parent
 
+    this.emit('parentChanged', Object.assign(new NodeEvent(), { parent }))
+
     if (this._parent) {
       this._parent._children.push(this)
+      this.emitUp(
+        'add',
+        Object.assign(new NodeEvent(), { child: this, parent: this._parent })
+      )
     }
   }
 
@@ -218,6 +228,18 @@ export class Node {
   }
 
   /**
+   * Add method as a once-listener to the given event when the node is initialized. The listener will be removed when the node is destroyed.
+   */
+  static once<This extends Node, EventName extends keyof GetEvents<This>>(
+    event: EventName,
+    options: {
+      until?: (this: This) => Signal | [EventEmitter, string]
+    } = {}
+  ) {
+    return Node.on(event, { ...options, once: true })
+  }
+
+  /**
    * Set the given property to the child node with the given name when the field is first accessed.
    * The result is cached.
    */
@@ -243,6 +265,22 @@ export class Node {
             return result
           },
           configurable: true
+        })
+      })
+    }
+  }
+
+  static parent() {
+    return function <This extends Node, Value extends Node>(
+      _: any,
+      context: ClassAccessorDecoratorContext<This, Value>
+    ) {
+      context.addInitializer(function (this: This) {
+        this.once('parentChanged', e => {
+          Object.defineProperty(this, context.name, {
+            value: e.parent,
+            writable: false
+          })
         })
       })
     }
@@ -290,8 +328,67 @@ export class Node {
     }
   }
 
+  static watch<This extends Node, Value>(
+    target: ClassAccessorDecoratorTarget<This, Value>,
+    context: ClassAccessorDecoratorContext<This, Value>
+  ): ClassAccessorDecoratorResult<This, Value>
+  static watch<This extends Node, Value>(
+    target: (this: This, value: Value) => void,
+    context: ClassSetterDecoratorContext
+  ): (this: This, value: Value) => void
+  static watch<This extends Node, Value>(
+    target:
+      | ClassAccessorDecoratorTarget<This, Value>
+      | ((this: This, value: Value) => void),
+    context:
+      | ClassAccessorDecoratorContext<This, Value>
+      | ClassSetterDecoratorContext<This, Value>
+  ):
+    | ClassAccessorDecoratorResult<This, Value>
+    | ((this: This, value: Value) => void) {
+    console.log(context)
+    if (context.kind === 'setter') {
+      return function (this: This, value: Value) {
+        const previous = this[context.name]
+
+        this.emit(
+          `set(${context.name as string})`,
+          Object.assign(new NodeEvent(), {
+            value,
+            previous
+          } as any)
+        )
+        ;(target as (this: This, value: Value) => void).call(this, value)
+      }
+    } else {
+      return {
+        get(this: This) {
+          return (target as ClassAccessorDecoratorTarget<This, Value>).get.call(
+            this
+          )
+        },
+        set(this: This, value: Value) {
+          const _target = target as ClassAccessorDecoratorTarget<This, Value>
+
+          const previous = _target.get.call(this)
+
+          this.emit(
+            `set(${context.name as string})`,
+            Object.assign(new NodeEvent(), {
+              value,
+              previous
+            } as any)
+          )
+
+          _target.set.call(this, value)
+        }
+      }
+    }
+  }
+
   constructor(props?: NodeProps<Node>) {
     this.props = props || ({} as any)
+
     const onUpdate = ((e: UpdateEvent) => {
       this._delta = e.delta
     }).bind(this)
@@ -308,10 +405,12 @@ export class Node {
 
     // Handle props
     if (props) {
+      // Handle name props
       if (props.name) {
         this.name = props.name
       }
 
+      // Handle position props
       if (props.position) {
         this.localPosition.copy(
           new THREE.Vector3(
@@ -322,6 +421,7 @@ export class Node {
         )
       }
 
+      // Handle rotation props
       if (props.rotation) {
         this.localRotation.setFromEuler(
           new THREE.Euler(
@@ -332,12 +432,14 @@ export class Node {
         )
       }
 
+      // Handle scale props
       if (props.scale) {
         this.localScale.copy(
           new THREE.Vector3(props.scale[0], props.scale[1], props.scale[2])
         )
       }
 
+      // Handle children props
       if (props.children) {
         if (Array.isArray(props.children)) {
           props.children.forEach(child => {
@@ -468,9 +570,7 @@ export class Node {
   emit<EventName extends keyof GetEvents<this>>(
     eventName: EventName,
     e: GetEvents<this>[EventName]
-  ): void
-  emit(eventName: string, e: NodeEvent): void
-  emit(eventName: string, e: any) {
+  ) {
     const callListener = (listener: NodeEventCallback) => {
       const result = listener(e)
 
@@ -499,9 +599,7 @@ export class Node {
   emitDown<EventName extends keyof GetEvents<this>>(
     eventName: EventName,
     e: GetEvents<this>[EventName]
-  ): void
-  emitDown(eventName: string, e: NodeEvent): void
-  emitDown(eventName: string, e: any) {
+  ) {
     this.emit(eventName, e)
 
     if (e.stoppedPropagation) return
@@ -512,9 +610,7 @@ export class Node {
   emitUp<EventName extends keyof GetEvents<this>>(
     eventName: EventName,
     e: GetEvents<this>[EventName]
-  ): void
-  emitUp(eventName: string, e: NodeEvent): void
-  emitUp(eventName: string, e: any) {
+  ) {
     this.emit(eventName, e)
 
     if (e.stoppedPropagation) return
@@ -668,7 +764,9 @@ export class Node {
     }
   }
 
-  getComponent<T extends Class<this['$components']>>(componentClass: T) {
+  getComponent<T extends Class<this['$components']>>(
+    componentClass: T
+  ): InstanceType<T> {
     return this.components.find(
       (component: any) => component instanceof componentClass
     )! as InstanceType<T>
