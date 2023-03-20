@@ -55,14 +55,59 @@ export class Node {
     return this._delta * this.timeScale * (this.parent?.timeScale ?? 1)
   }
 
+  private _localPosition = new THREE.Vector3()
+
+  get localPosition() {
+    const pos = this._localPosition
+
+    const node = this
+
+    return Object.assign(pos, {
+      set x(x: number) {
+        console.log('set x', x)
+        node.localPosition = new THREE.Vector3(x, pos.y, pos.z)
+      },
+      set y(y: number) {
+        node.localPosition = new THREE.Vector3(pos.x, y, pos.z)
+      },
+      set z(z: number) {
+        node.localPosition = new THREE.Vector3(pos.x, pos.y, z)
+      }
+    })
+  }
+
   @Node.watch
-  accessor localPosition = new THREE.Vector3()
+  set localPosition(position: THREE.Vector3) {
+    this._localPosition = position
+  }
 
   @Node.watch
   accessor localRotation = new THREE.Quaternion()
 
+  private _localScale = new THREE.Vector3(1, 1, 1)
+
+  get localScale() {
+    const scale = this._localScale
+
+    const node = this
+
+    return Object.assign(scale, {
+      set x(x: number) {
+        node.localScale = new THREE.Vector3(x, scale.y, scale.z)
+      },
+      set y(y: number) {
+        node.localScale = new THREE.Vector3(scale.x, y, scale.z)
+      },
+      set z(z: number) {
+        node.localScale = new THREE.Vector3(scale.x, scale.y, z)
+      }
+    })
+  }
+
   @Node.watch
-  accessor localScale = new THREE.Vector3(1, 1, 1)
+  set localScale(scale: THREE.Vector3) {
+    this._localScale = scale
+  }
 
   private _localMatrix = new THREE.Matrix4()
 
@@ -99,7 +144,27 @@ export class Node {
   }
 
   get position() {
-    return this.localToWorld(this.localPosition)
+    const pos = this.localToWorld(this.localPosition)
+
+    const node = this
+
+    return Object.assign(pos, {
+      set x(x: number) {
+        pos.x = x
+
+        node.localPosition.x = node.worldToLocal(pos).x
+      },
+      set y(y: number) {
+        pos.y = y
+
+        node.localPosition.y = node.worldToLocal(pos).y
+      },
+      set z(z: number) {
+        pos.z = z
+
+        node.localPosition.z = node.worldToLocal(pos).z
+      }
+    })
   }
 
   set position(position: THREE.Vector3) {
@@ -115,7 +180,27 @@ export class Node {
   }
 
   get scale() {
-    return this.localToWorld(this.localScale)
+    const scale = this.localToWorld(this.localScale)
+
+    const node = this
+
+    return Object.assign(scale, {
+      set x(x: number) {
+        scale.x = x
+
+        node.localScale.x = node.worldToLocal(scale).x
+      },
+      set y(y: number) {
+        scale.y = y
+
+        node.localScale.y = node.worldToLocal(scale).y
+      },
+      set z(z: number) {
+        scale.z = z
+
+        node.localScale.z = node.worldToLocal(scale).z
+      }
+    })
   }
 
   set scale(scale: THREE.Vector3) {
