@@ -65,12 +65,16 @@ export class Node {
     return Object.assign(pos, {
       set x(x: number) {
         console.log('set x', x)
+        
+        pos.x = x
         node.localPosition = new THREE.Vector3(x, pos.y, pos.z)
       },
       set y(y: number) {
+        pos.y = y
         node.localPosition = new THREE.Vector3(pos.x, y, pos.z)
       },
       set z(z: number) {
+        pos.z = z
         node.localPosition = new THREE.Vector3(pos.x, pos.y, z)
       }
     })
@@ -79,6 +83,7 @@ export class Node {
   @Node.watch
   set localPosition(position: THREE.Vector3) {
     this._localPosition = position
+    this.updateLocalMatrix()
   }
 
   @Node.watch
@@ -93,13 +98,13 @@ export class Node {
 
     return Object.assign(scale, {
       set x(x: number) {
-        node.localScale = new THREE.Vector3(x, scale.y, scale.z)
+        node._localScale = new THREE.Vector3(x, scale.y, scale.z)
       },
       set y(y: number) {
-        node.localScale = new THREE.Vector3(scale.x, y, scale.z)
+        node._localScale = new THREE.Vector3(scale.x, y, scale.z)
       },
       set z(z: number) {
-        node.localScale = new THREE.Vector3(scale.x, scale.y, z)
+        node._localScale = new THREE.Vector3(scale.x, scale.y, z)
       }
     })
   }
@@ -118,9 +123,9 @@ export class Node {
   @bound
   updateLocalMatrix() {
     this._localMatrix = new THREE.Matrix4().compose(
-      this.localPosition,
+      this._localPosition,
       this.localRotation,
-      this.localScale
+      this._localScale
     )
   }
 
@@ -152,17 +157,18 @@ export class Node {
       set x(x: number) {
         pos.x = x
 
-        node.localPosition.x = node.worldToLocal(pos).x
+
+        node.localPosition = node.worldToLocal(pos)
       },
       set y(y: number) {
         pos.y = y
 
-        node.localPosition.y = node.worldToLocal(pos).y
+        node.localPosition = node.worldToLocal(pos)
       },
       set z(z: number) {
         pos.z = z
 
-        node.localPosition.z = node.worldToLocal(pos).z
+        node.localPosition = node.worldToLocal(pos)
       }
     })
   }
