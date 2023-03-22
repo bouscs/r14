@@ -8,7 +8,7 @@
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
     "lib": ["ESNext", "DOM"],
-    "jsx": "react-jsx",
+    "jsx": "preserve",
     "jsxImportSource": "r14-h",
     //"types": ["vite/client"],
     "noEmit": true,

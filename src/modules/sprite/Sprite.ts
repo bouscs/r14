@@ -3,7 +3,7 @@ import { Interactive } from '../interactive'
 import { Component, Node, NodeProps } from '../node'
 import * as THREE from 'three'
 
-export interface SpriteProps extends NodeProps {
+export interface SpriteProps {
   texture: string
 }
 
@@ -19,7 +19,7 @@ export class Sprite extends Node {
   })
   accessor interactive!: Interactive
 
-  constructor(props: SpriteProps) {
+  constructor(props: SpriteProps & NodeProps) {
     super(props)
 
     const map = new THREE.TextureLoader().load(props.texture)
@@ -32,6 +32,11 @@ export class Sprite extends Node {
 
     this.sprite = new THREE.Mesh(geometry, this.material)
     engine.render.scene.add(this.sprite)
+  }
+
+  @Node.on('start')
+  awake() {
+    console.log(this.interactive)
   }
 
   @Node.on('update')

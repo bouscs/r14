@@ -281,6 +281,8 @@ export class Node {
           }
           const component = new componentClass(this, props)
 
+          console.log(componentClass)
+
           Object.defineProperty(this, context.name, {
             value: component,
             writable: false

@@ -176,14 +176,22 @@ class Player extends Node {
   }
 
   @Node.on('fixedUpdate')
-  fixedUpdate(e: FixedUpdateEvent) {}
+  fixedUpdate(e: FixedUpdateEvent) {
+    // console.log('fixedUpdate', e)
+  }
 
   @Node.on('drag')
   onDrag(e: PointerNodeEvent) {
+    // console.log('drag', e)
     this.body.body.applyForce(
       planck.Vec2(e.originalEvent.movementX, -e.originalEvent.movementY),
       planck.Vec2(this.position.x, this.position.y)
     )
+  }
+
+  @Node.on('pointerDown')
+  onPointerDown(e: PointerNodeEvent) {
+    // console.log('pointerDown', e)
   }
 
   @Node.on('start')
@@ -206,6 +214,8 @@ engine.start()
 engine.root.add(
   <>
     <Player position={[0, 0, 0]} rotation={[0, 0, 30]} />
+    <Player position={[3, 0, 0]} rotation={[0, 0, 30]} />
+    <Player position={[-3, 0, 0]} rotation={[0, 0, 30]} />
 
     <Spinner>
       <Camera mode="orthographic" width={16} height={12} position={[0, 0, 5]} />
