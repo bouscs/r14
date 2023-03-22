@@ -34,11 +34,6 @@ export class Sprite extends Node {
     engine.render.scene.add(this.sprite)
   }
 
-  @Node.on('start')
-  awake() {
-    console.log(this.interactive)
-  }
-
   @Node.on('update')
   update() {
     this.sprite.position.set(this.position.x, this.position.y, this.position.z)

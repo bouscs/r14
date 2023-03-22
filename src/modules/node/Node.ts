@@ -58,31 +58,42 @@ export class Node {
   private _localPosition = new THREE.Vector3()
 
   get localPosition() {
-    const pos = this._localPosition
+    const pos = this._localPosition.clone()
 
     const node = this
 
+    let _x = pos.x
+    let _y = pos.y
+    let _z = pos.z
+
     return Object.assign(pos, {
+      get x() {
+        return _x
+      },
       set x(x: number) {
-        console.log('set x', x)
-        
-        pos.x = x
-        node.localPosition = new THREE.Vector3(x, pos.y, pos.z)
+        _x = x
+        node.localPosition = new THREE.Vector3(x, this.y, this.z)
+      },
+      get y() {
+        return _y
       },
       set y(y: number) {
-        pos.y = y
-        node.localPosition = new THREE.Vector3(pos.x, y, pos.z)
+        _y = y
+        node.localPosition = new THREE.Vector3(this.x, y, this.z)
+      },
+      get z() {
+        return _z
       },
       set z(z: number) {
-        pos.z = z
-        node.localPosition = new THREE.Vector3(pos.x, pos.y, z)
+        _z = z
+        node.localPosition = new THREE.Vector3(this.x, this.y, z)
       }
     })
   }
 
   @Node.watch
   set localPosition(position: THREE.Vector3) {
-    this._localPosition = position
+    this._localPosition.copy(position)
     this.updateLocalMatrix()
   }
 
@@ -153,28 +164,41 @@ export class Node {
 
     const node = this
 
+    let _x = pos.x
+    let _y = pos.y
+    let _z = pos.z
+
     return Object.assign(pos, {
+      get x() {
+        return _x
+      },
       set x(x: number) {
-        pos.x = x
+        _x = x
 
-
-        node.localPosition = node.worldToLocal(pos)
+        node.localPosition = node.worldToLocal(this as unknown as THREE.Vector3)
+      },
+      get y() {
+        return _y
       },
       set y(y: number) {
-        pos.y = y
+        _y = y
 
-        node.localPosition = node.worldToLocal(pos)
+        node.localPosition = node.worldToLocal(this as unknown as THREE.Vector3)
+      },
+      get z() {
+        return _z
       },
       set z(z: number) {
-        pos.z = z
+        _z = z
 
-        node.localPosition = node.worldToLocal(pos)
+        node.localPosition = node.worldToLocal(this as unknown as THREE.Vector3)
       }
     })
   }
 
   set position(position: THREE.Vector3) {
     this.localPosition = this.worldToLocal(position)
+    // console.log('set position', position, this.worldToLocal(position))
   }
 
   get rotation() {
@@ -410,8 +434,6 @@ export class Node {
           }
           const component = new componentClass(this, props)
 
-          console.log(componentClass)
-
           Object.defineProperty(this, context.name, {
             value: component,
             writable: false
@@ -439,7 +461,6 @@ export class Node {
   ):
     | ClassAccessorDecoratorResult<This, Value>
     | ((this: This, value: Value) => void) {
-    console.log(context)
     if (context.kind === 'setter') {
       return function (this: This, value: Value) {
         const previous = this[context.name]
@@ -595,9 +616,9 @@ export class Node {
     arg: THREE.Vector3 | THREE.Quaternion
   ): THREE.Vector3 | THREE.Quaternion {
     if (arg instanceof THREE.Vector3) {
-      return arg.clone().applyMatrix4(this.worldMatrix)
+      return arg.clone().applyMatrix4(this.worldMatrix.clone())
     } else {
-      return arg.clone().premultiply(this.worldQuaternion)
+      return arg.clone().premultiply(this.worldQuaternion.clone())
     }
   }
 
@@ -608,8 +629,10 @@ export class Node {
   ): THREE.Vector3 | THREE.Quaternion {
     if (arg instanceof THREE.Vector3) {
       return arg.clone().applyMatrix4(this.worldMatrix.clone().invert())
-    } else {
+    } else if (arg instanceof THREE.Quaternion) {
       return arg.clone().premultiply(this.worldQuaternion.clone().invert())
+    } else {
+      throw new Error('Invalid argument')
     }
   }
 
