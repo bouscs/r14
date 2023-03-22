@@ -1,4 +1,3 @@
-import { InteractionManager } from 'three.interactive'
 import { engine } from '..'
 import { Component, ComponentNode, Node, NodeEvent } from '../node'
 import { bound } from 'aureamorum'
@@ -12,7 +11,7 @@ export type PointerNodeEvent = NodeEvent & {
   originalEvent: PointerEvent
 }
 
-export interface InteractiveEvents {
+export interface InteractiveEvents extends Record<string, NodeEvent> {
   pointerDown: PointerNodeEvent
   pointerUp: PointerNodeEvent
   pointerOver: PointerNodeEvent
@@ -130,10 +129,10 @@ export class Interactive extends Component {
   }
 
   @bound
-  onDragEnd() {
+  onDragEnd(e: PointerEvent) {
     this.node.emitUp(
       'dragEnd',
-      Object.assign(new NodeEvent(), { originalEvent: event })
+      Object.assign(new NodeEvent(), { originalEvent: e })
     )
 
     this.isDragging = false

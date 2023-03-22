@@ -10,11 +10,11 @@ import {
 import { Body2D } from './modules/physics/Body2D'
 import { Camera } from './modules/camera'
 import { Sprite } from './modules/sprite'
-import { BoxCollider2D } from './modules/physics'
 import { Interactive, PointerNodeEvent } from './modules/interactive'
 import * as THREE from 'three'
 import * as planck from 'planck'
 import { CircleCollider2D } from './modules/physics/CircleCollider2D'
+import { CameraBounds } from './modules/camera/CameraBounds'
 
 console.log(engine)
 
@@ -184,7 +184,10 @@ class Player extends Node {
   onDrag(e: PointerNodeEvent) {
     // console.log('drag', e)
     this.body.body.applyForce(
-      planck.Vec2(e.originalEvent.movementX, -e.originalEvent.movementY),
+      planck.Vec2(
+        5 * e.originalEvent.movementX,
+        5 * -e.originalEvent.movementY
+      ),
       planck.Vec2(this.position.x, this.position.y)
     )
   }
@@ -197,6 +200,11 @@ class Player extends Node {
   @Node.on('start')
   start() {
     console.log('start')
+  }
+
+  @Node.on('set(localPosition)')
+  onPositionChange(e: NodeEvent & { value: THREE.Vector3 }) {
+    // console.log('position changed', e.value)
   }
 }
 
@@ -218,7 +226,9 @@ engine.root.add(
     <Player position={[-3, 0, 0]} rotation={[0, 0, 30]} />
 
     <Spinner>
-      <Camera mode="orthographic" width={16} height={12} position={[0, 0, 5]} />
+      <Camera mode="orthographic" width={16} height={12} position={[0, 0, 5]}>
+        <CameraBounds />
+      </Camera>
     </Spinner>
   </>
 )

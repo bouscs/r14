@@ -55,23 +55,77 @@ export class Node {
     return this._delta * this.timeScale * (this.parent?.timeScale ?? 1)
   }
 
-  localPosition = new THREE.Vector3()
+  private _localPosition = new THREE.Vector3()
 
-  localRotation = new THREE.Quaternion()
+  get localPosition() {
+    const pos = this._localPosition
 
-  localScale = new THREE.Vector3(1, 1, 1)
+    const node = this
+
+    return Object.assign(pos, {
+      set x(x: number) {
+        console.log('set x', x)
+        
+        pos.x = x
+        node.localPosition = new THREE.Vector3(x, pos.y, pos.z)
+      },
+      set y(y: number) {
+        pos.y = y
+        node.localPosition = new THREE.Vector3(pos.x, y, pos.z)
+      },
+      set z(z: number) {
+        pos.z = z
+        node.localPosition = new THREE.Vector3(pos.x, pos.y, z)
+      }
+    })
+  }
+
+  @Node.watch
+  set localPosition(position: THREE.Vector3) {
+    this._localPosition = position
+    this.updateLocalMatrix()
+  }
+
+  @Node.watch
+  accessor localRotation = new THREE.Quaternion()
+
+  private _localScale = new THREE.Vector3(1, 1, 1)
+
+  get localScale() {
+    const scale = this._localScale
+
+    const node = this
+
+    return Object.assign(scale, {
+      set x(x: number) {
+        node._localScale = new THREE.Vector3(x, scale.y, scale.z)
+      },
+      set y(y: number) {
+        node._localScale = new THREE.Vector3(scale.x, y, scale.z)
+      },
+      set z(z: number) {
+        node._localScale = new THREE.Vector3(scale.x, scale.y, z)
+      }
+    })
+  }
+
+  @Node.watch
+  set localScale(scale: THREE.Vector3) {
+    this._localScale = scale
+  }
 
   private _localMatrix = new THREE.Matrix4()
+
   get localMatrix() {
-    return this._localMatrix
+    return this._localMatrix.clone()
   }
 
   @bound
   updateLocalMatrix() {
     this._localMatrix = new THREE.Matrix4().compose(
-      this.localPosition,
+      this._localPosition,
       this.localRotation,
-      this.localScale
+      this._localScale
     )
   }
 
@@ -95,7 +149,28 @@ export class Node {
   }
 
   get position() {
-    return this.localToWorld(this.localPosition)
+    const pos = this.localToWorld(this.localPosition)
+
+    const node = this
+
+    return Object.assign(pos, {
+      set x(x: number) {
+        pos.x = x
+
+
+        node.localPosition = node.worldToLocal(pos)
+      },
+      set y(y: number) {
+        pos.y = y
+
+        node.localPosition = node.worldToLocal(pos)
+      },
+      set z(z: number) {
+        pos.z = z
+
+        node.localPosition = node.worldToLocal(pos)
+      }
+    })
   }
 
   set position(position: THREE.Vector3) {
@@ -111,7 +186,27 @@ export class Node {
   }
 
   get scale() {
-    return this.localToWorld(this.localScale)
+    const scale = this.localToWorld(this.localScale)
+
+    const node = this
+
+    return Object.assign(scale, {
+      set x(x: number) {
+        scale.x = x
+
+        node.localScale.x = node.worldToLocal(scale).x
+      },
+      set y(y: number) {
+        scale.y = y
+
+        node.localScale.y = node.worldToLocal(scale).y
+      },
+      set z(z: number) {
+        scale.z = z
+
+        node.localScale.z = node.worldToLocal(scale).z
+      }
+    })
   }
 
   set scale(scale: THREE.Vector3) {
@@ -133,11 +228,11 @@ export class Node {
   >()
 
   private _listeners: {
-    [K in keyof GetEvents<this>]?: Set<NodeEventCallback<any>>
+    [K in keyof GetEvents<this>]?: Set<NodeEventCallback>
   } = {}
 
   private _onceListeners: {
-    [K in keyof GetEvents<this>]?: Set<NodeEventCallback<any>>
+    [K in keyof GetEvents<this>]?: Set<NodeEventCallback>
   } = {}
 
   get children() {
@@ -159,8 +254,14 @@ export class Node {
 
     this._parent = parent
 
+    this.emit('parentChanged', Object.assign(new NodeEvent(), { parent }))
+
     if (this._parent) {
       this._parent._children.push(this)
+      this.emitUp(
+        'add',
+        Object.assign(new NodeEvent(), { child: this, parent: this._parent })
+      )
     }
   }
 
@@ -218,6 +319,18 @@ export class Node {
   }
 
   /**
+   * Add method as a once-listener to the given event when the node is initialized. The listener will be removed when the node is destroyed.
+   */
+  static once<This extends Node, EventName extends keyof GetEvents<This>>(
+    event: EventName,
+    options: {
+      until?: (this: This) => Signal | [EventEmitter, string]
+    } = {}
+  ) {
+    return Node.on(event, { ...options, once: true })
+  }
+
+  /**
    * Set the given property to the child node with the given name when the field is first accessed.
    * The result is cached.
    */
@@ -243,6 +356,22 @@ export class Node {
             return result
           },
           configurable: true
+        })
+      })
+    }
+  }
+
+  static parent() {
+    return function <This extends Node, Value extends Node>(
+      _: any,
+      context: ClassAccessorDecoratorContext<This, Value>
+    ) {
+      context.addInitializer(function (this: This) {
+        this.once('parentChanged', e => {
+          Object.defineProperty(this, context.name, {
+            value: e.parent,
+            writable: false
+          })
         })
       })
     }
@@ -292,8 +421,67 @@ export class Node {
     }
   }
 
+  static watch<This extends Node, Value>(
+    target: ClassAccessorDecoratorTarget<This, Value>,
+    context: ClassAccessorDecoratorContext<This, Value>
+  ): ClassAccessorDecoratorResult<This, Value>
+  static watch<This extends Node, Value>(
+    target: (this: This, value: Value) => void,
+    context: ClassSetterDecoratorContext
+  ): (this: This, value: Value) => void
+  static watch<This extends Node, Value>(
+    target:
+      | ClassAccessorDecoratorTarget<This, Value>
+      | ((this: This, value: Value) => void),
+    context:
+      | ClassAccessorDecoratorContext<This, Value>
+      | ClassSetterDecoratorContext<This, Value>
+  ):
+    | ClassAccessorDecoratorResult<This, Value>
+    | ((this: This, value: Value) => void) {
+    console.log(context)
+    if (context.kind === 'setter') {
+      return function (this: This, value: Value) {
+        const previous = this[context.name]
+
+        this.emit(
+          `set(${context.name as string})`,
+          Object.assign(new NodeEvent(), {
+            value,
+            previous
+          } as any)
+        )
+        ;(target as (this: This, value: Value) => void).call(this, value)
+      }
+    } else {
+      return {
+        get(this: This) {
+          return (target as ClassAccessorDecoratorTarget<This, Value>).get.call(
+            this
+          )
+        },
+        set(this: This, value: Value) {
+          const _target = target as ClassAccessorDecoratorTarget<This, Value>
+
+          const previous = _target.get.call(this)
+
+          this.emit(
+            `set(${context.name as string})`,
+            Object.assign(new NodeEvent(), {
+              value,
+              previous
+            } as any)
+          )
+
+          _target.set.call(this, value)
+        }
+      }
+    }
+  }
+
   constructor(props?: NodeProps<Node>) {
     this.props = props || ({} as any)
+
     const onUpdate = ((e: UpdateEvent) => {
       this._delta = e.delta
     }).bind(this)
@@ -310,10 +498,12 @@ export class Node {
 
     // Handle props
     if (props) {
+      // Handle name props
       if (props.name) {
         this.name = props.name
       }
 
+      // Handle position props
       if (props.position) {
         this.localPosition.copy(
           new THREE.Vector3(
@@ -324,6 +514,7 @@ export class Node {
         )
       }
 
+      // Handle rotation props
       if (props.rotation) {
         this.localRotation.setFromEuler(
           new THREE.Euler(
@@ -334,12 +525,14 @@ export class Node {
         )
       }
 
+      // Handle scale props
       if (props.scale) {
         this.localScale.copy(
           new THREE.Vector3(props.scale[0], props.scale[1], props.scale[2])
         )
       }
 
+      // Handle children props
       if (props.children) {
         if (Array.isArray(props.children)) {
           props.children.forEach(child => {
@@ -470,9 +663,7 @@ export class Node {
   emit<EventName extends keyof GetEvents<this>>(
     eventName: EventName,
     e: GetEvents<this>[EventName]
-  ): void
-  emit(eventName: string, e: NodeEvent): void
-  emit(eventName: string, e: any) {
+  ) {
     const callListener = (listener: NodeEventCallback) => {
       const result = listener(e)
 
@@ -501,9 +692,7 @@ export class Node {
   emitDown<EventName extends keyof GetEvents<this>>(
     eventName: EventName,
     e: GetEvents<this>[EventName]
-  ): void
-  emitDown(eventName: string, e: NodeEvent): void
-  emitDown(eventName: string, e: any) {
+  ) {
     this.emit(eventName, e)
 
     if (e.stoppedPropagation) return
@@ -514,9 +703,7 @@ export class Node {
   emitUp<EventName extends keyof GetEvents<this>>(
     eventName: EventName,
     e: GetEvents<this>[EventName]
-  ): void
-  emitUp(eventName: string, e: NodeEvent): void
-  emitUp(eventName: string, e: any) {
+  ) {
     this.emit(eventName, e)
 
     if (e.stoppedPropagation) return
@@ -670,7 +857,9 @@ export class Node {
     }
   }
 
-  getComponent<T extends Class<this['$components']>>(componentClass: T) {
+  getComponent<T extends Class<this['$components']>>(
+    componentClass: T
+  ): InstanceType<T> {
     return this.components.find(
       (component: any) => component instanceof componentClass
     )! as InstanceType<T>

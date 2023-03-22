@@ -2,6 +2,7 @@ import { Class, EventEmitter, Signal } from 'aureamorum'
 import { Node } from './Node'
 import { NodeEventListener } from './NodeEventListener'
 import { AnyNode, GetEvents } from './types'
+import { NodeEvent } from './NodeEvent'
 
 export interface ComponentProps {}
 

@@ -28,8 +28,32 @@ export interface NodeEventTypes {
   update: UpdateEvent
   awake: NodeEvent
   start: NodeEvent
+  add: NodeEvent & {
+    parent: Node
+    child: Node
+  }
+  parentChanged: NodeEvent & {
+    parent: Node | null
+  }
+  [key: `set(${string})`]: NodeEvent & {
+    value: any
+    previous: any
+  }
 }
 
-export type GetEvents<T extends AnyNode> = T['$events'] &
-  NodeEventTypes &
-  T['$components']['$events']
+export type WatchEvents = {
+  // export type WatchEvents<T extends Node> = {
+  //   [K in keyof T as `set(${string & K})`]: NodeEvent & {
+  //     value: T[K]
+  //     previous: T[K]
+  //   }
+}
+
+export type GetEvents<T extends AnyNode> = T['$events'] extends object
+  ? Record<string | number | symbol, NodeEvent> &
+      NodeEventTypes &
+      T['$events'] &
+      T['$components']['$events']
+  : Record<string | number | symbol, NodeEvent> &
+      NodeEventTypes &
+      T['$components']['$events']
