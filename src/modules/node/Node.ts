@@ -1,4 +1,13 @@
-import { Class, EventEmitter, Signal, bound, getClass, rad } from 'aureamorum'
+import {
+  Class,
+  EventEmitter,
+  Signal,
+  bound,
+  cached,
+  getClass,
+  rad,
+  refreshCached
+} from 'aureamorum'
 import { NodeEvent } from './NodeEvent'
 import { NodeEventListener } from './NodeEventListener'
 import {
@@ -93,8 +102,7 @@ export class Node {
 
   @Node.watch
   set localPosition(position: THREE.Vector3) {
-    this._localPosition.copy(position)
-    this.updateLocalMatrix()
+    this._localPosition = position
   }
 
   @Node.watch
@@ -107,14 +115,30 @@ export class Node {
 
     const node = this
 
+    let _x = scale.x
+    let _y = scale.y
+    let _z = scale.z
+
     return Object.assign(scale, {
+      get x() {
+        return _x
+      },
       set x(x: number) {
+        _x = x
         node._localScale = new THREE.Vector3(x, scale.y, scale.z)
       },
       set y(y: number) {
+        _y = y
         node._localScale = new THREE.Vector3(scale.x, y, scale.z)
       },
+      get y() {
+        return _y
+      },
+      get z() {
+        return _z
+      },
       set z(z: number) {
+        _z = z
         node._localScale = new THREE.Vector3(scale.x, scale.y, z)
       }
     })
@@ -125,18 +149,12 @@ export class Node {
     this._localScale = scale
   }
 
-  private _localMatrix = new THREE.Matrix4()
-
+  @cached
   get localMatrix() {
-    return this._localMatrix.clone()
-  }
-
-  @bound
-  updateLocalMatrix() {
-    this._localMatrix = new THREE.Matrix4().compose(
-      this._localPosition,
+    return new THREE.Matrix4().compose(
+      this.localPosition,
       this.localRotation,
-      this._localScale
+      this.localScale
     )
   }
 
@@ -168,37 +186,44 @@ export class Node {
     let _y = pos.y
     let _z = pos.z
 
-    return Object.assign(pos, {
-      get x() {
-        return _x
-      },
-      set x(x: number) {
-        _x = x
+    Object.defineProperties(pos, {
+      x: {
+        get() {
+          return _x
+        },
+        set(x: number) {
+          _x = x
 
-        node.localPosition = node.worldToLocal(this as unknown as THREE.Vector3)
+          node.localPosition = node.worldToLocal(pos)
+        }
       },
-      get y() {
-        return _y
-      },
-      set y(y: number) {
-        _y = y
+      y: {
+        get() {
+          return _y
+        },
+        set(y: number) {
+          _y = y
 
-        node.localPosition = node.worldToLocal(this as unknown as THREE.Vector3)
+          node.localPosition = node.worldToLocal(pos)
+        }
       },
-      get z() {
-        return _z
-      },
-      set z(z: number) {
-        _z = z
+      z: {
+        get() {
+          return _z
+        },
+        set(z: number) {
+          _z = z
 
-        node.localPosition = node.worldToLocal(this as unknown as THREE.Vector3)
+          node.localPosition = node.worldToLocal(pos)
+        }
       }
     })
+
+    return pos
   }
 
   set position(position: THREE.Vector3) {
     this.localPosition = this.worldToLocal(position)
-    // console.log('set position', position, this.worldToLocal(position))
   }
 
   get rotation() {
@@ -214,27 +239,40 @@ export class Node {
 
     const node = this
 
-    return Object.assign(scale, {
-      set x(x: number) {
-        scale.x = x
+    let _x = scale.x
+    let _y = scale.y
+    let _z = scale.z
 
-        node.localScale.x = node.worldToLocal(scale).x
+    return Object.assign(scale, {
+      get x() {
+        return _x
+      },
+      set x(x: number) {
+        _x = x
+
+        node.localScale = node.worldToLocal(this as unknown as THREE.Vector3)
+      },
+      get y() {
+        return _y
       },
       set y(y: number) {
-        scale.y = y
+        _y = y
 
-        node.localScale.y = node.worldToLocal(scale).y
+        node.localScale = node.worldToLocal(this as unknown as THREE.Vector3)
+      },
+      get z() {
+        return _z
       },
       set z(z: number) {
-        scale.z = z
+        _z = z
 
-        node.localScale.z = node.worldToLocal(scale).z
+        node.localScale = node.worldToLocal(this as unknown as THREE.Vector3)
       }
     })
   }
 
   set scale(scale: THREE.Vector3) {
-    this.localScale.copy(this.worldToLocal(scale))
+    this.localScale = this.worldToLocal(scale)
   }
 
   /**
@@ -284,7 +322,10 @@ export class Node {
       this._parent._children.push(this)
       this.emitUp(
         'add',
-        Object.assign(new NodeEvent(), { child: this, parent: this._parent })
+        Object.assign(new NodeEvent(), {
+          child: this,
+          parent: this._parent
+        }) as GetEvents<this>['add']
       )
     }
   }
@@ -507,15 +548,12 @@ export class Node {
       this._delta = e.delta
     }).bind(this)
 
-    const onFixedUpdate = ((e: FixedUpdateEvent) => {
-      this.updateLocalMatrix()
+    const onPreUpdate = ((e: UpdateEvent) => {
+      refreshCached(this, 'localMatrix')
     }).bind(this)
 
+    this.on('preUpdate', onPreUpdate)
     this.on('update', onUpdate)
-    this.on('fixedUpdate', onFixedUpdate)
-
-    // Update matrix
-    this.updateLocalMatrix()
 
     // Handle props
     if (props) {
@@ -526,18 +564,16 @@ export class Node {
 
       // Handle position props
       if (props.position) {
-        this.localPosition.copy(
-          new THREE.Vector3(
-            props.position[0],
-            props.position[1],
-            props.position[2]
-          )
+        this.localPosition = new THREE.Vector3(
+          props.position[0],
+          props.position[1],
+          props.position[2]
         )
       }
 
       // Handle rotation props
       if (props.rotation) {
-        this.localRotation.setFromEuler(
+        this.localRotation = new THREE.Quaternion().setFromEuler(
           new THREE.Euler(
             rad(props.rotation[0]),
             rad(props.rotation[1]),
@@ -548,8 +584,10 @@ export class Node {
 
       // Handle scale props
       if (props.scale) {
-        this.localScale.copy(
-          new THREE.Vector3(props.scale[0], props.scale[1], props.scale[2])
+        this.localScale = new THREE.Vector3(
+          props.scale[0],
+          props.scale[1],
+          props.scale[2]
         )
       }
 
@@ -718,9 +756,9 @@ export class Node {
   ) {
     this.emit(eventName, e)
 
-    if (e.stoppedPropagation) return
+    if ((e as NodeEvent).stoppedPropagation) return
 
-    this.children.forEach(child => child.emitDown(eventName, e))
+    this.children.forEach(child => child.emitDown(eventName as any, e as any))
   }
 
   emitUp<EventName extends keyof GetEvents<this>>(
@@ -729,10 +767,10 @@ export class Node {
   ) {
     this.emit(eventName, e)
 
-    if (e.stoppedPropagation) return
+    if ((e as NodeEvent).stoppedPropagation) return
 
     if (this.parent) {
-      this.parent.emitUp(eventName, e)
+      this.parent.emitUp(eventName as any, e as any)
     }
   }
 

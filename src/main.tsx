@@ -35,6 +35,10 @@ class ChildNode extends Node {
 }
 
 class MyNode extends Node {
+  declare $events: Node['$events'] & {
+    childEvent: NodeEvent
+  }
+
   @Node.child('child')
   accessor child!: ChildNode
 
@@ -183,13 +187,16 @@ class Player extends Node {
   @Node.on('drag')
   onDrag(e: PointerNodeEvent) {
     // console.log('drag', e)
-    this.body.body.applyForce(
-      planck.Vec2(
-        5 * e.originalEvent.movementX,
-        5 * -e.originalEvent.movementY
-      ),
-      planck.Vec2(this.position.x, this.position.y)
-    )
+    // this.body.body.applyForce(
+    //   planck.Vec2(
+    //     5 * e.originalEvent.movementX,
+    //     5 * -e.originalEvent.movementY
+    //   ),
+    //   planck.Vec2(this.position.x, this.position.y)
+    // )
+
+    this.position.x += 0.05 * e.originalEvent.movementX
+    this.position.y += 0.05 * -e.originalEvent.movementY
   }
 
   @Node.on('pointerDown')
@@ -222,14 +229,10 @@ engine.start()
 engine.root.add(
   <>
     <Player position={[0, 0, 0]} rotation={[0, 0, 30]} />
-    <Player position={[3, 0, 0]} rotation={[0, 0, 30]} />
-    <Player position={[-3, 0, 0]} rotation={[0, 0, 30]} />
 
-    <Spinner>
-      <Camera mode="orthographic" width={16} height={12} position={[0, 0, 5]}>
-        <CameraBounds />
-      </Camera>
-    </Spinner>
+    <Camera mode="orthographic" width={16} height={12} position={[0, 0, 5]}>
+      <CameraBounds />
+    </Camera>
   </>
 )
 

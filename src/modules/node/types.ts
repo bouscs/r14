@@ -25,6 +25,7 @@ export type AnyNode = Node & {
 export interface NodeEventTypes {
   destroy: NodeEvent
   fixedUpdate: FixedUpdateEvent
+  preUpdate: UpdateEvent
   update: UpdateEvent
   awake: NodeEvent
   start: NodeEvent
@@ -49,11 +50,13 @@ export type WatchEvents = {
   //   }
 }
 
-export type GetEvents<T extends AnyNode> = T['$events'] extends object
-  ? Record<string | number | symbol, NodeEvent> &
-      NodeEventTypes &
-      T['$events'] &
-      T['$components']['$events']
-  : Record<string | number | symbol, NodeEvent> &
-      NodeEventTypes &
-      T['$components']['$events']
+export type GetEvents<T extends Node> = T['$events'] extends Record<
+  string | number | symbol,
+  any
+>
+  ? T['$components']['$events'] extends Record<string | number | symbol, any>
+    ? NodeEventTypes & T['$events'] & T['$components']['$events']
+    : NodeEventTypes & T['$events']
+  : T['$components']['$events'] extends Record<string | number | symbol, any>
+  ? NodeEventTypes & T['$components']['$events']
+  : NodeEventTypes
