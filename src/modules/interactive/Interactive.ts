@@ -9,6 +9,8 @@ export interface InteractiveProps {
 
 export type PointerNodeEvent = NodeEvent & {
   originalEvent: PointerEvent
+  pointerX: number
+  pointerY: number
 }
 
 export interface InteractiveEvents extends Record<string, NodeEvent> {
@@ -60,7 +62,9 @@ export class Interactive extends Component {
       this.node.emitUp(
         'pointerDown',
         Object.assign(new NodeEvent(), {
-          originalEvent: event
+          originalEvent: event,
+          pointerX: this.pointerPosition.x,
+          pointerY: this.pointerPosition.y
         })
       )
 
@@ -68,7 +72,11 @@ export class Interactive extends Component {
 
       this.node.emitUp(
         'dragStart',
-        Object.assign(new NodeEvent(), { originalEvent: event })
+        Object.assign(new NodeEvent(), {
+          originalEvent: event,
+          pointerX: this.pointerPosition.x,
+          pointerY: this.pointerPosition.y
+        })
       )
 
       this.isDragging = true
@@ -83,7 +91,11 @@ export class Interactive extends Component {
     if (this.isDragging) {
       this.node.emitUp(
         'drag',
-        Object.assign(new NodeEvent(), { originalEvent: event })
+        Object.assign(new NodeEvent(), {
+          originalEvent: event,
+          pointerX: this.pointerPosition.x,
+          pointerY: this.pointerPosition.y
+        })
       )
     }
 
@@ -102,11 +114,16 @@ export class Interactive extends Component {
 
     const intersects = this.raycaster.intersectObject(this.props.object3D)
 
+    const pointerX = this.pointerPosition.x
+    const pointerY = this.pointerPosition.y
+
     if (intersects.length > 0) {
       this.node.emitUp(
         'pointerMove',
         Object.assign(new NodeEvent(), {
-          originalEvent: event
+          originalEvent: event,
+          pointerX,
+          pointerY
         })
       )
 
@@ -120,7 +137,9 @@ export class Interactive extends Component {
       this.node.emitUp(
         'pointerUp',
         Object.assign(new NodeEvent(), {
-          originalEvent: event
+          originalEvent: event,
+          pointerX: this.pointerPosition.x,
+          pointerY: this.pointerPosition.y
         })
       )
 
@@ -132,7 +151,11 @@ export class Interactive extends Component {
   onDragEnd(e: PointerEvent) {
     this.node.emitUp(
       'dragEnd',
-      Object.assign(new NodeEvent(), { originalEvent: e })
+      Object.assign(new NodeEvent(), {
+        originalEvent: e,
+        pointerX: this.pointerPosition.x,
+        pointerY: this.pointerPosition.y
+      })
     )
 
     this.isDragging = false
