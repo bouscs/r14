@@ -674,6 +674,15 @@ export class Node {
     }
   }
 
+  directionToWorld(vector: THREE.Vector3) {
+    return new THREE.Vector3().setFromMatrixPosition(
+    new THREE.Matrix4().compose(vector, new THREE.Quaternion(), new THREE.Vector3()).multiply(this.worldMatrix.clone()))
+  }
+
+  directionToLocal(vector: THREE.Vector3) {
+
+  }
+
   on<EventName extends keyof GetEvents<this>>(
     eventName: EventName,
     listener: NodeEventCallback<GetEvents<this>[EventName]>

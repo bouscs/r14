@@ -24,6 +24,7 @@ export class Body2D extends Component {
   @Component.on('set(localPosition)')
   onSetLocalPosition(e: NodeEvent & { value: THREE.Vector3 }) {
     this.body.setPosition(new planck.Vec2(e.value.x, e.value.y))
+    this.body.setAwake(true)
   }
 
   @Component.on('fixedUpdate')
