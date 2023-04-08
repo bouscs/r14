@@ -24,8 +24,8 @@ export abstract class Component {
     componentClass: C,
     props: ConstructorParameters<C>[1]
   ) {
-    return function (this: Node) {
-      return new componentClass(this, props)
+    return function (this: Node<InstanceType<C>>) {
+      return new componentClass(this, props) as InstanceType<C>
     }
   }
 

@@ -5,6 +5,7 @@ import * as THREE from 'three'
 
 export interface InteractiveProps {
   object3D: THREE.Object3D
+  active?: boolean
 }
 
 export type PointerNodeEvent = NodeEvent & {
@@ -44,6 +45,10 @@ export class Interactive extends Component {
     super(node, props)
 
     this.raycaster = new THREE.Raycaster()
+
+    if (props.active) {
+      this.activate()
+    }
   }
 
   @bound
@@ -110,7 +115,7 @@ export class Interactive extends Component {
 
     const camera = engine.render.cameras[0]
 
-    this.raycaster.setFromCamera(this.pointerPosition, camera.camera)
+    this.raycaster.setFromCamera(this.pointerPosition, camera.threeCamera)
 
     const intersects = this.raycaster.intersectObject(this.props.object3D)
 

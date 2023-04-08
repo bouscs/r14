@@ -10,9 +10,9 @@ export interface SpriteProps {
 export class Sprite extends Node {
   declare $components: Interactive
 
-  sprite: THREE.Mesh
+  sprite: THREE.Sprite
 
-  material: THREE.Material
+  material: THREE.SpriteMaterial
 
   @Node.component(Interactive, function (this: Sprite) {
     return { object3D: this.sprite }
@@ -23,14 +23,13 @@ export class Sprite extends Node {
     super(props)
 
     const map = new THREE.TextureLoader().load(props.texture)
-    this.material = new THREE.MeshBasicMaterial({
+
+    this.material = new THREE.SpriteMaterial({
       map,
       transparent: true
     })
 
-    const geometry = new THREE.PlaneGeometry(1, 1)
-
-    this.sprite = new THREE.Mesh(geometry, this.material)
+    this.sprite = new THREE.Sprite(this.material)
     engine.render.scene.add(this.sprite)
   }
 
@@ -40,5 +39,8 @@ export class Sprite extends Node {
     this.sprite.rotation.copy(
       new THREE.Euler().setFromQuaternion(this.rotation)
     )
+    this.sprite.material.rotation = new THREE.Euler().setFromQuaternion(
+      this.rotation
+    ).z
   }
 }

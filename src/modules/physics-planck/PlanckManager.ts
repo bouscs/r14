@@ -5,8 +5,6 @@ import { bound } from 'aureamorum'
 export class PlanckManager {
   world: planck.World
 
-  worldBounds: planck.Body
-
   constructor() {
     const gravity = planck.Vec2(0, -9.81)
     this.world = planck.World({
@@ -15,19 +13,19 @@ export class PlanckManager {
 
     engine.clock.on('fixedUpdate', this.step)
 
-    this.worldBounds = this.world.createBody({ type: 'static' })
-    this.worldBounds.createFixture(
-      planck.Edge(planck.Vec2(4, 3), planck.Vec2(-4, 3))
-    )
-    this.worldBounds.createFixture(
-      planck.Edge(planck.Vec2(-4, 3), planck.Vec2(-4, -3))
-    )
-    this.worldBounds.createFixture(
-      planck.Edge(planck.Vec2(-4, -3), planck.Vec2(4, -3))
-    )
-    this.worldBounds.createFixture(
-      planck.Edge(planck.Vec2(4, -3), planck.Vec2(4, 3))
-    )
+    // this.worldBounds = this.world.createBody({ type: 'static' })
+    // this.worldBounds.createFixture(
+    //   planck.Edge(planck.Vec2(4, 3), planck.Vec2(-4, 3))
+    // )
+    // this.worldBounds.createFixture(
+    //   planck.Edge(planck.Vec2(-4, 3), planck.Vec2(-4, -3))
+    // )
+    // this.worldBounds.createFixture(
+    //   planck.Edge(planck.Vec2(-4, -3), planck.Vec2(4, -3))
+    // )
+    // this.worldBounds.createFixture(
+    //   planck.Edge(planck.Vec2(4, -3), planck.Vec2(4, 3))
+    // )
   }
 
   @bound

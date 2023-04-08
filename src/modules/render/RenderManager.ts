@@ -15,6 +15,8 @@ export class RenderManager extends EventEmitter<RenderManagerEvents> {
 
   cameras: Camera[] = []
 
+  mainCamera!: Camera
+
   constructor() {
     super()
     this.scene = new THREE.Scene()
@@ -27,7 +29,7 @@ export class RenderManager extends EventEmitter<RenderManagerEvents> {
 
   @bound
   update() {
-    if (this.cameras.length === 0) return
-    this.renderer.render(this.scene, this.cameras[0].camera)
+    if (!this.mainCamera) return
+    this.renderer.render(this.scene, this.mainCamera.threeCamera)
   }
 }

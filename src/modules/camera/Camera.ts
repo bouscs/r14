@@ -4,10 +4,11 @@ import { Node, NodeProps } from '../node'
 
 import * as THREE from 'three'
 
-export type CameraProps<T extends Node> = {
+export type CameraProps = {
   near?: number
   far?: number
-} & NodeProps<T> &
+  main?: boolean
+} & NodeProps<Node> &
   (OrthographicCameraProps | PerspectiveCameraProps)
 
 export interface OrthographicCameraProps {
@@ -23,9 +24,9 @@ export interface PerspectiveCameraProps {
 }
 
 export class Camera extends Node {
-  declare props: CameraProps<this>
+  declare props: CameraProps
 
-  camera!: THREE.Camera
+  threeCamera!: THREE.Camera
 
   interactionManager!: InteractionManager
 
@@ -38,7 +39,11 @@ export class Camera extends Node {
   set mode(mode: 'orthographic' | 'perspective') {
     this._mode = mode
 
-    this.setCamera()
+    this.setupCamera()
+  }
+
+  get canvas() {
+    return engine.render.renderer.domElement
   }
 
   constructor(props: Camera['props']) {
@@ -46,21 +51,21 @@ export class Camera extends Node {
 
     this._mode = props.mode
 
-    this.setCamera()
+    this.setupCamera()
 
-    this.camera.position.copy(this.position)
+    this.threeCamera.position.copy(this.position)
 
-    this.camera.rotation.copy(
+    this.threeCamera.rotation.copy(
       new THREE.Euler().setFromQuaternion(this.rotation)
     )
 
-    this.camera.updateMatrixWorld()
+    this.threeCamera.updateMatrixWorld()
   }
 
-  setCamera() {
-    if (this.camera) {
+  private setupCamera() {
+    if (this.threeCamera) {
       engine.render.emit('removeCamera', this)
-      this.camera.clear()
+      this.threeCamera.clear()
       engine.render.cameras.splice(engine.render.cameras.indexOf(this), 1)
 
       this.interactionManager.dispose()
@@ -68,7 +73,7 @@ export class Camera extends Node {
 
     if (this.mode === 'orthographic') {
       const props = this.props as OrthographicCameraProps
-      this.camera = new THREE.OrthographicCamera(
+      this.threeCamera = new THREE.OrthographicCamera(
         props.width / -2,
         props.width / 2,
         props.height / 2,
@@ -78,18 +83,23 @@ export class Camera extends Node {
       )
     } else {
       const props = this.props as PerspectiveCameraProps
-      this.camera = new THREE.PerspectiveCamera(
+      this.threeCamera = new THREE.PerspectiveCamera(
         props.fov,
         props.aspect,
         this.props.near,
         this.props.far
       )
     }
+
     engine.render.cameras.push(this)
+
+    if (this.props.main === true) {
+      engine.render.mainCamera = this
+    }
 
     this.interactionManager = new InteractionManager(
       engine.render.renderer,
-      this.camera,
+      this.threeCamera,
       engine.render.renderer.domElement
     )
 
@@ -98,12 +108,22 @@ export class Camera extends Node {
 
   @Node.on('update')
   update() {
-    this.camera.position.copy(this.position)
+    this.threeCamera.position.copy(this.position)
 
-    this.camera.rotation.copy(
+    this.threeCamera.rotation.copy(
       new THREE.Euler().setFromQuaternion(this.rotation)
     )
 
-    this.camera.updateMatrixWorld()
+    this.threeCamera.updateMatrixWorld()
+  }
+
+  pointToWorld(pointPosition: THREE.Vector2) {
+    const vector = new THREE.Vector3(pointPosition.x, pointPosition.y, 0.5)
+
+    const raycaster = new THREE.Raycaster()
+
+    raycaster.setFromCamera(vector, this.threeCamera)
+
+    return raycaster.ray.origin
   }
 }

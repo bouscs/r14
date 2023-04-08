@@ -11,8 +11,6 @@ import {
 import { NodeEvent } from './NodeEvent'
 import { NodeEventListener } from './NodeEventListener'
 import {
-  AnyNode,
-  FixedUpdateEvent,
   GetEvents,
   NodeEventCallback,
   NodeTemplate,
@@ -32,26 +30,33 @@ export type NodeProps<T extends Node = Node> = {
 
   components?: (() => T['$components'])[]
 } & {
-  [Key in keyof Omit<T['$events'], symbol> as `on:${Key}`]?: NodeEventCallback<
-    T['$events'][Key]
-  >
+  [Key in keyof GetEvents<T> as `on:${Key extends string | number
+    ? Key
+    : string}`]?: NodeEventCallback<GetEvents<T>[Key]>
 } & {
   [Key in keyof Omit<
-    T['$events'],
+    GetEvents<T>,
     symbol
-  > as `once:${Key}`]?: NodeEventCallback<T['$events'][Key]>
+  > as `once:${Key}`]?: NodeEventCallback<GetEvents<T>[Key]>
 }
 
 export const nodeTemplateSymbol = Symbol('nodeTemplate')
 
-export class Node {
-  readonly id = Symbol('Node')
+export class Node<Components extends Component = Component, Events = unknown> {
+  id = Symbol('Node')
+
+  /**
+   * Pseudo-property to define the events that can be emitted by the node.
+   */
+  declare $events: Events
+
+  declare $components: Components
 
   destroySignal = new Signal({ once: true })
 
   name: string | symbol = 'Node'
 
-  props: NodeProps<this>
+  props: any
 
   readonly components: this['$components'][] = []
 
@@ -274,13 +279,6 @@ export class Node {
   set scale(scale: THREE.Vector3) {
     this.localScale = this.worldToLocal(scale)
   }
-
-  /**
-   * Pseudo-property to define the events that can be emitted by the node.
-   */
-  declare $events: unknown
-
-  declare $components: Component
 
   private _parent: Node | null = null
 
@@ -541,14 +539,14 @@ export class Node {
     }
   }
 
-  constructor(props?: NodeProps<Node>) {
+  constructor(props?: NodeProps<Node<Components, Events>>) {
     this.props = props || ({} as any)
 
     const onUpdate = ((e: UpdateEvent) => {
       this._delta = e.delta
     }).bind(this)
 
-    const onPreUpdate = ((e: UpdateEvent) => {
+    const onPreUpdate = (() => {
       refreshCached(this, 'localMatrix')
     }).bind(this)
 
@@ -607,6 +605,7 @@ export class Node {
         .filter(key => key.startsWith('on:'))
         .map(key => key.slice(3))
         .forEach(callback => {
+          console.log(callback, props)
           this.on(callback as any, props[`on:${callback}`]!.bind(this)! as any)
         })
 
@@ -676,11 +675,18 @@ export class Node {
 
   directionToWorld(vector: THREE.Vector3) {
     return new THREE.Vector3().setFromMatrixPosition(
-    new THREE.Matrix4().compose(vector, new THREE.Quaternion(), new THREE.Vector3()).multiply(this.worldMatrix.clone()))
+      new THREE.Matrix4()
+        .compose(vector, new THREE.Quaternion(), new THREE.Vector3())
+        .multiply(this.worldMatrix.clone())
+    )
   }
 
   directionToLocal(vector: THREE.Vector3) {
-
+    return new THREE.Vector3().setFromMatrixPosition(
+      new THREE.Matrix4()
+        .compose(vector, new THREE.Quaternion(), new THREE.Vector3())
+        .multiply(this.worldMatrix.clone().invert())
+    )
   }
 
   on<EventName extends keyof GetEvents<this>>(
@@ -915,8 +921,13 @@ export class Node {
   add(node: JSX.Element): void
   add(node: Node): void
   add(nodes: Node[]): void
+  add(...nodes: JSX.Element[]): void
   add(node: Node | Node[]): void
   add(node: Node | Node[] | JSX.Element): void {
+    if (Array.isArray(arguments)) {
+      ;(arguments as unknown as Node[]).forEach(arg => this.add(arg))
+      return
+    }
     if (typeof node === 'function') {
       node = node() as any
     }

@@ -4,6 +4,7 @@ import * as THREE from 'three'
 import * as planck from 'planck'
 import { bound } from 'aureamorum'
 import { Body2D } from './Body2D'
+import { engine } from '../engine'
 
 export abstract class Collider2D extends Component {
   fixture?: planck.Fixture
@@ -24,8 +25,12 @@ export abstract class Collider2D extends Component {
 
     this.body = this.node.getComponent(Body2D).body
 
-    if (this.body) {
-      this.fixture = this.createFixture()
+    if (!this.body) {
+      this.body = engine.planck.world.createBody({
+        type: 'static'
+      })
     }
+
+    this.fixture = this.createFixture()
   }
 }

@@ -51,12 +51,12 @@ export type WatchEvents = {
 }
 
 export type GetEvents<T extends Node> = T['$events'] extends Record<
-  string | number | symbol,
+  string | number,
   any
 >
-  ? T['$components']['$events'] extends Record<string | number | symbol, any>
+  ? T['$components']['$events'] extends Record<string | number, any>
     ? NodeEventTypes & T['$events'] & T['$components']['$events']
     : NodeEventTypes & T['$events']
-  : T['$components']['$events'] extends Record<string | number | symbol, any>
+  : T['$components']['$events'] extends Record<string | number, any>
   ? NodeEventTypes & T['$components']['$events']
   : NodeEventTypes

@@ -14,7 +14,9 @@ import { Interactive, PointerNodeEvent } from './modules/interactive'
 import * as THREE from 'three'
 import * as planck from 'planck'
 import { CircleCollider2D } from './modules/physics/CircleCollider2D'
-import { CameraBounds } from './modules/camera/CameraBounds'
+import { CameraBoundsCollider } from './modules/camera/CameraBoundsCollider'
+import { BoxCollider2D } from './modules/physics'
+import { Plane } from './modules/node/nodes/Plane'
 
 console.log(engine)
 
@@ -154,6 +156,8 @@ setTimeout(() => {
 class Player extends Node {
   declare $events: Interactive['$events']
 
+  declare $components: Body2D | CircleCollider2D
+
   @Node.child(Sprite)
   accessor sprite!: Sprite
 
@@ -169,14 +173,12 @@ class Player extends Node {
   // @Node.component(BoxCollider2D, { width: 1, height: 1 })
   // accessor collider!: BoxCollider2D
 
-  @Node.component(CircleCollider2D)
+  @Node.component(CircleCollider2D, { radius: 1.1 })
   accessor collider!: CircleCollider2D
 
   @Node.on('awake')
   awake() {
     console.log('awake')
-
-    this.sprite.interactive.activate()
   }
 
   @Node.on('fixedUpdate')
@@ -184,35 +186,42 @@ class Player extends Node {
     // console.log('fixedUpdate', e)
   }
 
-  @Node.on('drag')
-  onDrag(e: PointerNodeEvent) {
-    // console.log('drag', e)
-    // this.body.body.applyForce(
-    //   planck.Vec2(
-    //     5 * e.originalEvent.movementX,
-    //     5 * -e.originalEvent.movementY
-    //   ),
-    //   planck.Vec2(this.position.x, this.position.y)
-    // )
+  // @Node.on('drag')
+  // onDrag(e: PointerNodeEvent) {
+  //   // console.log('drag', e)
+  //   // this.body.body.applyForce(
+  //   //   planck.Vec2(
+  //   //     5 * e.originalEvent.movementX,
+  //   //     5 * -e.originalEvent.movementY
+  //   //   ),
+  //   //   planck.Vec2(this.position.x, this.position.y)
+  //   // )
 
-    this.position.x += 0.05 * e.originalEvent.movementX
-    this.position.y += 0.05 * -e.originalEvent.movementY
-  }
+  //   this.position.x += 0.05 * e.originalEvent.movementX
+  //   this.position.y += 0.05 * -e.originalEvent.movementY
+  // }
 
-  @Node.on('pointerDown')
-  onPointerDown(e: PointerNodeEvent) {
-    // console.log('pointerDown', e)
-  }
+  // @Node.on('pointerDown')
+  // onPointerDown(e: PointerNodeEvent) {
+  //   console.log(
+  //     'pointerDown',
+  //     e.pointerX,
+  //     e.pointerY,
+  //     engine.render.mainCamera.pointToWorld(
+  //       new THREE.Vector2(e.pointerX, e.pointerY)
+  //     )
+  //   )
+  // }
 
-  @Node.on('start')
-  start() {
-    console.log('start')
-  }
+  // @Node.on('start')
+  // start() {
+  //   console.log('start')
+  // }
 
-  @Node.on('set(localPosition)')
-  onPositionChange(e: NodeEvent & { value: THREE.Vector3 }) {
-    // console.log('position changed', e.value)
-  }
+  // @Node.on('set(localPosition)')
+  // onPositionChange(e: NodeEvent & { value: THREE.Vector3 }) {
+  //   // console.log('position changed', e.value)
+  // }
 }
 
 class Spinner extends Node {
@@ -224,16 +233,81 @@ class Spinner extends Node {
   }
 }
 
-engine.start()
-
-engine.root.add(
+@Node.template(() => (
   <>
     <Player position={[0, 0, 0]} rotation={[0, 0, 30]} />
 
-    <Camera mode="orthographic" width={16} height={12} position={[0, 0, 5]}>
-      <CameraBounds />
+    <Camera
+      mode="orthographic"
+      width={16}
+      height={12}
+      position={[0, 0, 5]}
+      main
+    >
+      <CameraBoundsCollider />
     </Camera>
+
+    <Plane
+      name="interactable"
+      width={100}
+      height={100}
+      interactive
+      material={{
+        opacity: 0.1,
+        transparent: true
+      }}
+    />
   </>
-)
+))
+class GameNode extends Node {
+  declare $events: Interactive['$events']
+
+  @Node.child(Player)
+  accessor player!: Player
+
+  @Node.child(Camera)
+  accessor camera!: Camera
+
+  @Node.child('interactable')
+  accessor interactable!: Plane
+
+  isPointerDown = false
+  pointerPosition = new THREE.Vector2()
+
+  @Node.on('dragStart')
+  onPointerDown(e: PointerNodeEvent) {
+    this.isPointerDown = true
+    this.pointerPosition.set(e.pointerX, e.pointerY)
+  }
+
+  @Node.on('drag')
+  onPointerMove(e: PointerNodeEvent) {
+    this.pointerPosition.set(e.pointerX, e.pointerY)
+  }
+
+  @Node.on('dragEnd')
+  onPointerUp(e: PointerNodeEvent) {
+    this.isPointerDown = false
+  }
+
+  @Node.on('fixedUpdate')
+  fixedUpdate(e: FixedUpdateEvent) {
+    if (this.isPointerDown) {
+      const worldPosition = this.camera.pointToWorld(this.pointerPosition)
+
+      this.player.body.body.applyForce(
+        planck.Vec2(
+          20 * (worldPosition.x - this.player.position.x),
+          20 * (worldPosition.y - this.player.position.y)
+        ),
+        planck.Vec2(this.player.position.x, this.player.position.y)
+      )
+    }
+  }
+}
+
+engine.start()
+
+engine.root.add(new GameNode())
 
 console.log(engine.root.children[0])
