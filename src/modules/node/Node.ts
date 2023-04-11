@@ -30,9 +30,9 @@ export type NodeProps<T extends Node = Node> = {
 
   components?: (() => T['$components'])[]
 } & {
-  [Key in keyof GetEvents<T> as `on:${Key extends string | number
-    ? Key
-    : string}`]?: NodeEventCallback<GetEvents<T>[Key]>
+  [Key in keyof Omit<GetEvents<T>, symbol> as `on:${Key}`]?: NodeEventCallback<
+    GetEvents<T>[Key]
+  >
 } & {
   [Key in keyof Omit<
     GetEvents<T>,
@@ -361,7 +361,7 @@ export class Node<Components extends Component = Component, Events = unknown> {
     ) => {
       context.addInitializer(function (this: This) {
         let listener: NodeEventListener
-        if (options.once) {
+        if (options.once === true) {
           listener = this.once(event, originalMethod.bind(this))
         } else {
           listener = this.on(event, originalMethod.bind(this))
@@ -443,7 +443,9 @@ export class Node<Components extends Component = Component, Events = unknown> {
   /**
    * Define the children of the node when the node is initialized.
    */
-  static template<T extends Class<Node>>(template: () => JSX.Element) {
+  static template<T extends Class<Node>>(
+    template: (this: InstanceType<T>) => JSX.Element
+  ) {
     return function (constructor: T, context: ClassDecoratorContext<T>) {
       context.addInitializer(function (this: T) {
         this[nodeTemplateSymbol] = template
@@ -740,6 +742,10 @@ export class Node<Components extends Component = Component, Events = unknown> {
     eventName: EventName,
     e: GetEvents<this>[EventName]
   ) {
+    if (!e.target) {
+      e.target = this
+    }
+
     const callListener = (listener: NodeEventCallback) => {
       const result = listener(e)
 

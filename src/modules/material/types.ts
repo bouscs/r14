@@ -1,6 +1,8 @@
+import { TextureAsset } from '../asset/TextureAsset'
+
 export interface MaterialOptions {
   color?: number
   opacity?: number
-  transparent?: boolean
-  map?: THREE.Texture
+  transparency?: boolean
+  texture?: string
 }

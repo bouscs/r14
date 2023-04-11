@@ -15,7 +15,11 @@
     "isolatedModules": true,
     "noImplicitAny": false,
     "skipLibCheck": true,
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "baseUrl": "./src",
+    "paths": {
+      "$engine": ["./engine"]
+    }
   },
   "include": ["./"]
 }

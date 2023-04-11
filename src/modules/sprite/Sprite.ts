@@ -1,10 +1,12 @@
 import { engine } from '..'
+import { TextureAsset } from '../asset/TextureAsset'
 import { Interactive } from '../interactive'
-import { Component, Node, NodeProps } from '../node'
+import { MaterialOptions } from '../material/types'
+import { Node, NodeProps } from '../node'
 import * as THREE from 'three'
 
 export interface SpriteProps {
-  texture: string
+  material?: MaterialOptions
 }
 
 export class Sprite extends Node {
@@ -22,14 +24,31 @@ export class Sprite extends Node {
   constructor(props: SpriteProps & NodeProps) {
     super(props)
 
-    const map = new THREE.TextureLoader().load(props.texture)
+    const threeMaterialOptions: THREE.SpriteMaterialParameters = {
+      transparent: props.material?.transparency ?? true,
+      opacity: props.material?.opacity ?? 1,
+      map: engine.assets.get<TextureAsset>(props.material?.texture || '')
+        ?.threeTexture
+    }
 
-    this.material = new THREE.SpriteMaterial({
-      map,
-      transparent: true
-    })
+    this.material = new THREE.SpriteMaterial(threeMaterialOptions)
 
     this.sprite = new THREE.Sprite(this.material)
+
+    if (props.material) {
+      const texture = engine.assets.get<TextureAsset>(
+        props.material.texture || ''
+      )
+
+      if (texture) {
+        this.sprite.scale.set(
+          texture.width / texture.pixelsPerUnit,
+          texture.height / texture.pixelsPerUnit,
+          1
+        )
+      }
+    }
+
     engine.render.scene.add(this.sprite)
   }
 

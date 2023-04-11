@@ -17,6 +17,7 @@ import { CircleCollider2D } from './modules/physics/CircleCollider2D'
 import { CameraBoundsCollider } from './modules/camera/CameraBoundsCollider'
 import { BoxCollider2D } from './modules/physics'
 import { Plane } from './modules/node/nodes/Plane'
+import { TextureAsset } from './modules/asset/TextureAsset'
 
 console.log(engine)
 
@@ -146,7 +147,12 @@ setTimeout(() => {
 
 @Node.template(() => (
   <>
-    <Sprite texture="carroAzul.png" />
+    <Sprite
+      material={{
+        texture: 'carroAzul.png',
+        transparency: true
+      }}
+    />
     <Node name="head">
       <Node name="camera" />
     </Node>
@@ -169,9 +175,6 @@ class Player extends Node {
 
   @Node.component(Body2D, { type: 'dynamic' })
   accessor body!: Body2D
-
-  // @Node.component(BoxCollider2D, { width: 1, height: 1 })
-  // accessor collider!: BoxCollider2D
 
   @Node.component(CircleCollider2D, { radius: 1.1 })
   accessor collider!: CircleCollider2D
@@ -247,14 +250,14 @@ class Spinner extends Node {
       <CameraBoundsCollider />
     </Camera>
 
+    <Plane name="interactable" width={100} height={100} interactive />
     <Plane
-      name="interactable"
+      name="background"
+      position={[0, 0, -1]}
       width={100}
       height={100}
-      interactive
       material={{
-        opacity: 0.1,
-        transparent: true
+        color: 0x444444
       }}
     />
   </>
@@ -286,12 +289,12 @@ class GameNode extends Node {
   }
 
   @Node.on('dragEnd')
-  onPointerUp(e: PointerNodeEvent) {
+  onPointerUp() {
     this.isPointerDown = false
   }
 
   @Node.on('fixedUpdate')
-  fixedUpdate(e: FixedUpdateEvent) {
+  fixedUpdate() {
     if (this.isPointerDown) {
       const worldPosition = this.camera.pointToWorld(this.pointerPosition)
 
@@ -306,8 +309,16 @@ class GameNode extends Node {
   }
 }
 
-engine.start()
+const start = async () => {
+  engine.start()
+  await engine.assets.load(
+    new TextureAsset({ url: 'carroAzul.png', pixelsPerUnit: 100 }),
+    '',
+    'carroAzul.png'
+  )
+  engine.root.add(new GameNode())
 
-engine.root.add(new GameNode())
+  console.log(engine.root.children[0])
+}
 
-console.log(engine.root.children[0])
+start()

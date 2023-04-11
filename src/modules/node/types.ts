@@ -22,7 +22,7 @@ export type AnyNode = Node & {
   $components: any
 }
 
-export interface NodeEventTypes {
+export interface NodeEventTypes extends Record<string | number, NodeEvent> {
   destroy: NodeEvent
   fixedUpdate: FixedUpdateEvent
   preUpdate: UpdateEvent
@@ -42,21 +42,10 @@ export interface NodeEventTypes {
   }
 }
 
-export type WatchEvents = {
-  // export type WatchEvents<T extends Node> = {
-  //   [K in keyof T as `set(${string & K})`]: NodeEvent & {
-  //     value: T[K]
-  //     previous: T[K]
-  //   }
-}
-
-export type GetEvents<T extends Node> = T['$events'] extends Record<
-  string | number,
-  any
->
-  ? T['$components']['$events'] extends Record<string | number, any>
-    ? NodeEventTypes & T['$events'] & T['$components']['$events']
-    : NodeEventTypes & T['$events']
-  : T['$components']['$events'] extends Record<string | number, any>
-  ? NodeEventTypes & T['$components']['$events']
-  : NodeEventTypes
+export type GetEvents<T extends Node> = NodeEventTypes &
+  (T['$events'] extends Record<string | number, NodeEvent>
+    ? T['$events']
+    : NodeEventTypes) &
+  (T['$components']['$events'] extends Record<string | number, NodeEvent>
+    ? T['$components']['$events']
+    : NodeEventTypes)

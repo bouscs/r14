@@ -4,6 +4,7 @@ import { RepeaterPlugin } from '.'
 import { PlanckPlugin } from '../physics-planck'
 import { RenderPlugin } from '../render'
 import { Node, NodeEvent } from '../node'
+import { AssetPlugin } from '../asset/AssetPlugin'
 
 export interface RepeaterEngineOptions {
   plugins?: Class<RepeaterPlugin>[]
@@ -80,5 +81,5 @@ export class RepeaterEngine extends EventEmitter {
 }
 
 export const engine = new RepeaterEngine({
-  plugins: [PlanckPlugin, RenderPlugin]
+  plugins: [AssetPlugin, PlanckPlugin, RenderPlugin]
 })
