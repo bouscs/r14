@@ -1,19 +1,48 @@
 import { Asset } from './Asset'
+import { AssetLoader } from './AssetLoader'
+import { AssetType, AssetTypes } from './types'
+
+export const assetLoaders: {
+  [Key in AssetType]: AssetLoader<Key>
+} = {} as any
 
 export class AssetManager {
-  private assets: Record<string, Asset> = {}
+  private assets: Record<string, AssetTypes[AssetType]> = {}
 
-  get<T extends Asset>(path: string) {
-    return this.assets[path] as T | undefined
+  get loaders() {
+    return assetLoaders
   }
 
-  async load(asset: Asset, dirPath: string, fileName: string) {
-    asset.fileName = fileName
-    asset.dirPath = dirPath
-    this.assets[asset.path] = asset
+  get<T extends AssetType>(path: string) {
+    return this.assets[path] as AssetTypes[T] | undefined
+  }
 
-    await asset.load()
+  async load(options: {
+    [Key in AssetType]: {
+      [assetPath: string]: Parameters<AssetLoader<Key>['load']>[0]
+    }
+  }) {
+    for (const _type in options) {
+      const type: AssetType = _type as any
+      const loader = this.loaders[type]
 
-    return asset
+      if (!loader) {
+        throw new Error(`No loader for type ${type}`)
+      }
+
+      const assets = options[type]
+
+      for (const path in assets) {
+        const existingAsset = this.get(path)
+
+        if (existingAsset) {
+          continue
+        }
+
+        const asset = await loader.load(assets[path])
+
+        this.assets[path] = asset
+      }
+    }
   }
 }

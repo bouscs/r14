@@ -6,6 +6,8 @@ import { engine } from '..'
 
 export interface Body2DProps {
   type?: 'static' | 'dynamic' | 'kinematic'
+  fixedRotation?: boolean
+  allowSleep?: boolean
 }
 
 export class Body2D extends Component {
@@ -17,7 +19,9 @@ export class Body2D extends Component {
     this.body = engine.planck.world.createBody({
       type: props.type ?? 'dynamic',
       position: planck.Vec2(node.position.x, node.position.y),
-      angle: new THREE.Euler().setFromQuaternion(node.rotation).z
+      angle: new THREE.Euler().setFromQuaternion(node.rotation).z,
+      allowSleep: props.allowSleep ?? true,
+      fixedRotation: props.fixedRotation ?? false
     })
   }
 

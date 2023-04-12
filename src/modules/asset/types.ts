@@ -5,3 +5,9 @@ declare module '../engine' {
     assets: AssetManager
   }
 }
+
+export interface AssetTypes {}
+
+export type AssetType = keyof AssetTypes
+
+export interface AssetTypeOptions extends Record<AssetType, any> {}

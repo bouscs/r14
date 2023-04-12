@@ -4,7 +4,7 @@ import { RepeaterPlugin } from '.'
 import { PlanckPlugin } from '../physics-planck'
 import { RenderPlugin } from '../render'
 import { Node, NodeEvent } from '../node'
-import { AssetPlugin } from '../asset/AssetPlugin'
+import { AssetPlugin } from '../asset'
 
 export interface RepeaterEngineOptions {
   plugins?: Class<RepeaterPlugin>[]

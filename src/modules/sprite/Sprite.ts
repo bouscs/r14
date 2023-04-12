@@ -1,5 +1,4 @@
 import { engine } from '..'
-import { TextureAsset } from '../asset/TextureAsset'
 import { Interactive } from '../interactive'
 import { MaterialOptions } from '../material/types'
 import { Node, NodeProps } from '../node'
@@ -24,29 +23,32 @@ export class Sprite extends Node {
   constructor(props: SpriteProps & NodeProps) {
     super(props)
 
+    const image = engine.assets.get<'image'>(
+      props.material?.texture?.imageAsset ?? ''
+    )
+
+    const texture = image ? new THREE.Texture(image) : undefined
+    if (texture) texture.needsUpdate = true
+
     const threeMaterialOptions: THREE.SpriteMaterialParameters = {
       transparent: props.material?.transparency ?? true,
       opacity: props.material?.opacity ?? 1,
-      map: engine.assets.get<TextureAsset>(props.material?.texture || '')
-        ?.threeTexture
+      map: texture
     }
 
     this.material = new THREE.SpriteMaterial(threeMaterialOptions)
 
     this.sprite = new THREE.Sprite(this.material)
 
-    if (props.material) {
-      const texture = engine.assets.get<TextureAsset>(
-        props.material.texture || ''
-      )
+    if (image) {
+      const texture = props.material!.texture!
+      const pixelsPerUnit = texture.pixelsPerUnit ?? 100
 
-      if (texture) {
-        this.sprite.scale.set(
-          texture.width / texture.pixelsPerUnit,
-          texture.height / texture.pixelsPerUnit,
-          1
-        )
-      }
+      this.sprite.scale.set(
+        image.width / pixelsPerUnit,
+        image.height / pixelsPerUnit,
+        1
+      )
     }
 
     engine.render.scene.add(this.sprite)

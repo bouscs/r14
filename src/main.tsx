@@ -1,12 +1,6 @@
-import { Component, engine } from './modules'
+import { engine } from './modules'
 import { Signal } from 'aureamorum'
-import {
-  FixedUpdateEvent,
-  Node,
-  NodeEvent,
-  NodeEventTypes,
-  NodeProps
-} from './modules'
+import { FixedUpdateEvent, Node, NodeEvent, NodeProps } from './modules'
 import { Body2D } from './modules/physics/Body2D'
 import { Camera } from './modules/camera'
 import { Sprite } from './modules/sprite'
@@ -15,9 +9,7 @@ import * as THREE from 'three'
 import * as planck from 'planck'
 import { CircleCollider2D } from './modules/physics/CircleCollider2D'
 import { CameraBoundsCollider } from './modules/camera/CameraBoundsCollider'
-import { BoxCollider2D } from './modules/physics'
 import { Plane } from './modules/node/nodes/Plane'
-import { TextureAsset } from './modules/asset/TextureAsset'
 
 console.log(engine)
 
@@ -81,11 +73,6 @@ class MyNode extends Node {
     yield this.wait('fixedUpdate', 120)
     // console.log('gen2 waited 120')
   } as AsyncGeneratorFunction
-
-  @Node.on('fixedUpdate')
-  fixedUpdate(e: FixedUpdateEvent) {
-    //console.log('fixedUpdate', e.time)
-  }
 }
 
 const node = new MyNode({
@@ -149,7 +136,9 @@ setTimeout(() => {
   <>
     <Sprite
       material={{
-        texture: 'carroAzul.png',
+        texture: {
+          imageAsset: 'carroAzul'
+        },
         transparency: true
       }}
     />
@@ -178,61 +167,14 @@ class Player extends Node {
 
   @Node.component(CircleCollider2D, { radius: 1.1 })
   accessor collider!: CircleCollider2D
-
-  @Node.on('awake')
-  awake() {
-    console.log('awake')
-  }
-
-  @Node.on('fixedUpdate')
-  fixedUpdate(e: FixedUpdateEvent) {
-    // console.log('fixedUpdate', e)
-  }
-
-  // @Node.on('drag')
-  // onDrag(e: PointerNodeEvent) {
-  //   // console.log('drag', e)
-  //   // this.body.body.applyForce(
-  //   //   planck.Vec2(
-  //   //     5 * e.originalEvent.movementX,
-  //   //     5 * -e.originalEvent.movementY
-  //   //   ),
-  //   //   planck.Vec2(this.position.x, this.position.y)
-  //   // )
-
-  //   this.position.x += 0.05 * e.originalEvent.movementX
-  //   this.position.y += 0.05 * -e.originalEvent.movementY
-  // }
-
-  // @Node.on('pointerDown')
-  // onPointerDown(e: PointerNodeEvent) {
-  //   console.log(
-  //     'pointerDown',
-  //     e.pointerX,
-  //     e.pointerY,
-  //     engine.render.mainCamera.pointToWorld(
-  //       new THREE.Vector2(e.pointerX, e.pointerY)
-  //     )
-  //   )
-  // }
-
-  // @Node.on('start')
-  // start() {
-  //   console.log('start')
-  // }
-
-  // @Node.on('set(localPosition)')
-  // onPositionChange(e: NodeEvent & { value: THREE.Vector3 }) {
-  //   // console.log('position changed', e.value)
-  // }
 }
 
 class Spinner extends Node {
   @Node.on('fixedUpdate')
   fixedUpdate(e: FixedUpdateEvent) {
-    // this.rotation = new THREE.Quaternion().setFromEuler(
-    //   new THREE.Euler(0, 0, e.time / 1000)
-    // )
+    this.rotation = new THREE.Quaternion().setFromEuler(
+      new THREE.Euler(0, 0, e.time / 1000)
+    )
   }
 }
 
@@ -251,6 +193,7 @@ class Spinner extends Node {
     </Camera>
 
     <Plane name="interactable" width={100} height={100} interactive />
+
     <Plane
       name="background"
       position={[0, 0, -1]}
@@ -311,14 +254,14 @@ class GameNode extends Node {
 
 const start = async () => {
   engine.start()
-  await engine.assets.load(
-    new TextureAsset({ url: 'carroAzul.png', pixelsPerUnit: 100 }),
-    '',
-    'carroAzul.png'
-  )
+  await engine.assets.load({
+    image: {
+      carroAzul: {
+        src: '/carroAzul.png'
+      }
+    }
+  })
   engine.root.add(new GameNode())
-
-  console.log(engine.root.children[0])
 }
 
 start()

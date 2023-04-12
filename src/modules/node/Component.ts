@@ -6,10 +6,6 @@ import { NodeEvent } from './NodeEvent'
 
 export interface ComponentProps {}
 
-export interface Component {
-  new (node: Node, props: Record<string, any>): Component
-}
-
 export type ComponentNode<T extends Component> = Node & {
   $components: T
 }
