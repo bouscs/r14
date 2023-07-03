@@ -4,15 +4,12 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc && vite build",
-    "preview": "vite preview",
-    "compile": "npx tsc --project tsconfig.comp.json",
-    "compile:watch": "npx tsc --project tsconfig.comp.json --watch"
+    "dev": "vite -c ./packages/dev/vite.config.ts",
+    "build": "vite build",
+    "preview": "vite preview"
   },
   "devDependencies": {
-    "@types/matter-js": "^0.18.2",
-    "@types/three": "^0.149.0",
+    "@types/node": "^20.3.3",
     "@typescript-eslint/eslint-plugin": "^5.50.0",
     "@typescript-eslint/parser": "^5.50.0",
     "eslint": "^8.33.0",
@@ -25,12 +22,6 @@
     "vite": "^4.1.0"
   },
   "dependencies": {
-    "eventemitter3": "^5.0.0",
-    "hyper-dom-expressions": "^0.35.15",
-    "matter-js": "^0.19.0",
-    "planck": "^1.0.0-alpha.4",
-    "three": "^0.150.1",
-    "three.interactive": "^1.6.1",
-    "uuid": "^9.0.0"
+    "aureamorum": "github:bouscs/aureamorum"
   }
 }

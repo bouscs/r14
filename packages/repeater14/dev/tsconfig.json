@@ -1,25 +1,19 @@
 {
+  "extends": ["../../../tsconfig.json"],
   "compilerOptions": {
     "strict": true,
-    "target": "ES2015",
+    "target": "ESNext",
     "useDefineForClassFields": true,
-    "module": "ES2015",
     "moduleResolution": "node",
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
-    "jsx": "preserve",
-    "jsxImportSource": "r14-h",
     "lib": ["ESNext", "DOM"],
-    //"types": ["vite/client"],
     "noEmit": true,
     "isolatedModules": true,
     "noImplicitAny": false,
     "skipLibCheck": true,
     "resolveJsonModule": true,
-    "baseUrl": "./src",
-    "paths": {
-      "$engine": ["./engine"]
-    }
+    "baseUrl": "./src"
   },
-  "include": ["./"]
+  "include": ["src", "./vite.config.ts"]
 }
