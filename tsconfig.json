@@ -3,17 +3,17 @@
     "strict": true,
     "target": "ESNext",
     "useDefineForClassFields": true,
+    "moduleResolution": "node",
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
     "lib": ["ESNext", "DOM"],
     "jsx": "preserve",
     "jsxImportSource": "repeater14",
-    "moduleResolution": "node",
-    //"types": ["vite/client"],
+    "types": ["vite/client"],
     "noEmit": true,
     "isolatedModules": true,
     "noImplicitAny": false,
     "skipLibCheck": true
-  }
-  // "exclude": ["node_modules"]
+  },
+  "exclude": ["node_modules"]
 }

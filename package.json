@@ -6,10 +6,13 @@
   "scripts": {
     "dev": "vite -c ./packages/dev/vite.config.ts",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "postinstall": "npm link repeater14"
   },
   "devDependencies": {
+    "@types/matter-js": "^0.18.5",
     "@types/node": "^20.3.3",
+    "@types/three": "^0.152.1",
     "@typescript-eslint/eslint-plugin": "^5.50.0",
     "@typescript-eslint/parser": "^5.50.0",
     "eslint": "^8.33.0",
@@ -22,6 +25,12 @@
     "vite": "^4.1.0"
   },
   "dependencies": {
-    "aureamorum": "github:bouscs/aureamorum"
+    "aureamorum": "github:bouscs/aureamorum",
+    "eventemitter3": "^5.0.1",
+    "matter-js": "^0.19.0",
+    "planck": "^1.0.0-alpha.4",
+    "three": "^0.154.0",
+    "three.interactive": "^1.7.0",
+    "uuid": "^9.0.0"
   }
 }

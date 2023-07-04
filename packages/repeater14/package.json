@@ -7,24 +7,21 @@
     "build": "vite build",
     "preview": "vite preview"
   },
-  "main": "src/index.ts",
-  "module": "src/index.ts",
   "type": "module",
-  "files": [
-    "src",
-    "h",
-    "dev",
-    "package.json"
-  ],
+  "types": "src/index.ts",
   "exports": {
     ".": {
-      "types": "./src/index.ts",
-      "import": "./src/index.ts",
+      "import": {
+        "types": "./src/index.ts",
+        "default": "./src/index.ts"
+      },
       "require": "./src/index.js"
     },
     "./jsx-runtime": {
-      "types": "./h/jsx-runtime/jsx.d.ts",
-      "import": "./h/jsx-runtime/index.js"
+      "import": {
+        "types": "./h/jsx-runtime/jsx.d.ts",
+        "default": "./h/jsx-runtime/index.js"
+      }
     },
     "./h": {
       "types": "./h/jsx-runtime/index.d.ts",
@@ -32,22 +29,12 @@
       "require": "./h/jsx-runtime/index.js"
     },
     "./h/jsx-runtime": {
-      "types": "./h/jsx-runtime/index.d.ts",
-      "import": "./h/jsx-runtime/index.js",
+      "import": {
+        "types": "./h/jsx-runtime/index.d.ts",
+        "default": "./h/jsx-runtime/index.js"
+      },
       "require": "./h/jsx-runtime/index.js"
     },
     "./package.json": "./package.json"
-  },
-  "devDependencies": {
-    "@types/matter-js": "^0.18.5",
-    "@types/three": "^0.152.1"
-  },
-  "dependencies": {
-    "eventemitter3": "^5.0.1",
-    "matter-js": "^0.19.0",
-    "planck": "^1.0.0-alpha.4",
-    "three": "^0.154.0",
-    "three.interactive": "^1.7.0",
-    "uuid": "^9.0.0"
   }
 }

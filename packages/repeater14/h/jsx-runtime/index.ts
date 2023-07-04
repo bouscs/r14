@@ -1,4 +1,4 @@
-export type {JSX} from './jsx'
+export type { JSX } from './jsx'
 
 type MountableElement =
   | Element
