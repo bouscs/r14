@@ -13,11 +13,14 @@ import {
   Interactive,
   PointerNodeEvent
 } from 'repeater14'
-import { Signal } from 'aureamorum'
+import { Signal, trait } from 'aureamorum'
 import * as THREE from 'three'
 import * as planck from 'planck'
 
 console.log(engine)
+const renderer = trait<{
+  render(): void
+}>()
 
 let fixedUpdates = 0
 const sig = new Signal()
@@ -159,6 +162,9 @@ class Player extends Node {
 
   declare $components: Body2D | CircleCollider2D
 
+  @Node.child('head')
+  accessor head: Node
+
   @Node.child(Sprite)
   accessor sprite: Sprite
 
@@ -255,6 +261,18 @@ class GameNode extends Node {
         planck.Vec2(this.player.position.x, this.player.position.y)
       )
     }
+  }
+
+  @Node.on('start')
+  start() {
+    renderer.of(this).render()
+  }
+}
+
+@renderer.for(Node)
+class NodeRenderer {
+  render() {
+    console.log('rendering node')
   }
 }
 
