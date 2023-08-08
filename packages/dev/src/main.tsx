@@ -16,7 +16,7 @@ import {
 import { Signal } from 'aureamorum'
 import * as THREE from 'three'
 import * as planck from 'planck'
-import {} from 'repeater14/jsx-runtime'
+
 console.log(engine)
 
 let fixedUpdates = 0
@@ -31,7 +31,7 @@ class ChildNode extends Node {
 
   @Node.on('childEvent')
   childEvent(e: NodeEvent) {
-    // console.log('childEvent', e)
+    console.log('childEvent', e)
   }
 }
 
@@ -41,7 +41,7 @@ class MyNode extends Node {
   }
 
   @Node.child('child')
-  accessor child!: ChildNode
+  accessor child: ChildNode
 
   constructor(props: NodeProps) {
     super(props)
@@ -160,19 +160,19 @@ class Player extends Node {
   declare $components: Body2D | CircleCollider2D
 
   @Node.child(Sprite)
-  accessor sprite!: Sprite
+  accessor sprite: Sprite
 
   @Node.child('camera')
-  accessor camera!: Node
+  accessor camera: Node
 
   @Node.child('gun')
-  accessor gun!: Node
+  accessor gun: Node
 
   @Node.component(Body2D, { type: 'dynamic' })
-  accessor body!: Body2D
+  accessor body: Body2D
 
   @Node.component(CircleCollider2D, { radius: 1.1 })
-  accessor collider!: CircleCollider2D
+  accessor collider: CircleCollider2D
 }
 
 class Spinner extends Node {

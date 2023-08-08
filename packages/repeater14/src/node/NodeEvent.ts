@@ -7,5 +7,5 @@ export class NodeEvent {
 
   stoppedImmediatePropagation = false
 
-  target!: Node
+  target: Node
 }

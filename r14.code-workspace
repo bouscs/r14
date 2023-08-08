@@ -5,12 +5,10 @@
     },
     {
       "path": "../aureamorum"
-    },
-    {
-      "path": "../r14-h"
     }
   ],
   "settings": {
-    "typescript.tsdk": "r14\\node_modules\\typescript\\lib"
+    "typescript.tsdk": "r14\\node_modules\\typescript\\lib",
+    "editor.linkedEditing": true
   }
 }

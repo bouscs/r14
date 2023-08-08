@@ -18,7 +18,64 @@ import {
 } from './types'
 import * as THREE from 'three'
 import { Component, EulerSimple, Vector3Simple } from '..'
-import { JSX } from 'r14-h/jsx-runtime'
+import { JSX } from 'repeater14/jsx-runtime'
+
+function watch<This extends Node, Value>(
+  target: ClassAccessorDecoratorTarget<This, Value>,
+  context: ClassAccessorDecoratorContext<This, Value>
+): ClassAccessorDecoratorResult<This, Value>
+function watch<This extends Node, Value>(
+  target: (this: This, value: Value) => void,
+  context: ClassSetterDecoratorContext
+): (this: This, value: Value) => void
+function watch<This extends Node, Value>(
+  target:
+    | ClassAccessorDecoratorTarget<This, Value>
+    | ((this: This, value: Value) => void),
+  context:
+    | ClassAccessorDecoratorContext<This, Value>
+    | ClassSetterDecoratorContext<This, Value>
+):
+  | ClassAccessorDecoratorResult<This, Value>
+  | ((this: This, value: Value) => void) {
+  if (context.kind === 'setter') {
+    return function (this: This, value: Value) {
+      const previous = this[context.name]
+
+      this.emit(
+        `set(${context.name as string})`,
+        Object.assign(new NodeEvent(), {
+          value,
+          previous
+        } as any)
+      )
+      ;(target as (this: This, value: Value) => void).call(this, value)
+    }
+  } else {
+    return {
+      get(this: This) {
+        return (target as ClassAccessorDecoratorTarget<This, Value>).get.call(
+          this
+        )
+      },
+      set(this: This, value: Value) {
+        const _target = target as ClassAccessorDecoratorTarget<This, Value>
+
+        const previous = _target.get.call(this)
+
+        this.emit(
+          `set(${context.name as string})`,
+          Object.assign(new NodeEvent(), {
+            value,
+            previous
+          } as any)
+        )
+
+        _target.set.call(this, value)
+      }
+    }
+  }
+}
 
 export type NodeProps<T extends Node = Node> = {
   name?: string | symbol
@@ -105,12 +162,12 @@ export class Node<Components extends Component = Component, Events = unknown> {
     })
   }
 
-  @Node.watch
+  @watch
   set localPosition(position: THREE.Vector3) {
     this._localPosition = position
   }
 
-  @Node.watch
+  @watch
   accessor localRotation = new THREE.Quaternion()
 
   private _localScale = new THREE.Vector3(1, 1, 1)
@@ -149,7 +206,7 @@ export class Node<Components extends Component = Component, Events = unknown> {
     })
   }
 
-  @Node.watch
+  @watch
   set localScale(scale: THREE.Vector3) {
     this._localScale = scale
   }
@@ -484,62 +541,7 @@ export class Node<Components extends Component = Component, Events = unknown> {
     }
   }
 
-  static watch<This extends Node, Value>(
-    target: ClassAccessorDecoratorTarget<This, Value>,
-    context: ClassAccessorDecoratorContext<This, Value>
-  ): ClassAccessorDecoratorResult<This, Value>
-  static watch<This extends Node, Value>(
-    target: (this: This, value: Value) => void,
-    context: ClassSetterDecoratorContext
-  ): (this: This, value: Value) => void
-  static watch<This extends Node, Value>(
-    target:
-      | ClassAccessorDecoratorTarget<This, Value>
-      | ((this: This, value: Value) => void),
-    context:
-      | ClassAccessorDecoratorContext<This, Value>
-      | ClassSetterDecoratorContext<This, Value>
-  ):
-    | ClassAccessorDecoratorResult<This, Value>
-    | ((this: This, value: Value) => void) {
-    if (context.kind === 'setter') {
-      return function (this: This, value: Value) {
-        const previous = this[context.name]
-
-        this.emit(
-          `set(${context.name as string})`,
-          Object.assign(new NodeEvent(), {
-            value,
-            previous
-          } as any)
-        )
-        ;(target as (this: This, value: Value) => void).call(this, value)
-      }
-    } else {
-      return {
-        get(this: This) {
-          return (target as ClassAccessorDecoratorTarget<This, Value>).get.call(
-            this
-          )
-        },
-        set(this: This, value: Value) {
-          const _target = target as ClassAccessorDecoratorTarget<This, Value>
-
-          const previous = _target.get.call(this)
-
-          this.emit(
-            `set(${context.name as string})`,
-            Object.assign(new NodeEvent(), {
-              value,
-              previous
-            } as any)
-          )
-
-          _target.set.call(this, value)
-        }
-      }
-    }
-  }
+  static watch = watch
 
   constructor(props?: NodeProps<Node<Components, Events>>) {
     this.props = props || ({} as any)
