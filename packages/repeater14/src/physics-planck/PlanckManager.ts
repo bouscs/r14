@@ -1,6 +1,6 @@
 import * as planck from 'planck'
 import { engine } from '..'
-import { bound } from 'aureamorum'
+import { bound } from 'bouscs-util'
 
 export class PlanckManager {
   world: planck.World

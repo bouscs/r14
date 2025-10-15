@@ -7,7 +7,7 @@ import {
   getClass,
   rad,
   refreshCached
-} from 'aureamorum'
+} from 'bouscs-util'
 import { NodeEvent } from './NodeEvent'
 import { NodeEventListener } from './NodeEventListener'
 import {

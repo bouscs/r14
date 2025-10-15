@@ -1,4 +1,4 @@
-import { EventEmitter } from 'aureamorum'
+import { EventEmitter } from 'bouscs-util'
 import * as THREE from 'three'
 
 export interface Vector3Events {

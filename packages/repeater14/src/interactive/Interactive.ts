@@ -1,6 +1,6 @@
 import { engine } from '..'
 import { Component, ComponentNode, Node, NodeEvent } from '../node'
-import { bound } from 'aureamorum'
+import { bound } from 'bouscs-util'
 import * as THREE from 'three'
 
 export interface InteractiveProps {

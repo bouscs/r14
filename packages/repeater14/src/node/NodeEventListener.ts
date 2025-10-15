@@ -1,4 +1,4 @@
-import { EventEmitter } from 'aureamorum'
+import { EventEmitter } from 'bouscs-util'
 import { Node } from './Node'
 import { NodeEvent } from './NodeEvent'
 import { AnyNode } from './types'

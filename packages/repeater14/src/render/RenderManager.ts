@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 import { engine } from '..'
-import { EventEmitter, bound } from 'aureamorum'
+import { EventEmitter, bound } from 'bouscs-util'
 import { InteractionManager } from 'three.interactive'
 import { Camera } from '../camera'
 

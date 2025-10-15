@@ -1,4 +1,4 @@
-import { Class, Clock, bound } from 'aureamorum'
+import { Class, Clock, bound } from 'bouscs-util'
 import EventEmitter from 'eventemitter3'
 import { RepeaterPlugin } from '.'
 import { PlanckPlugin } from '../physics-planck'

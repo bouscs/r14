@@ -1,4 +1,4 @@
-import { bound } from 'aureamorum'
+import { bound } from 'bouscs-util'
 import { RepeaterEngine } from '../engine'
 import * as Matter from 'matter-js'
 

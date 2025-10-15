@@ -1,4 +1,4 @@
-import { Class, EventEmitter, Signal } from 'aureamorum'
+import { Class, EventEmitter, Signal } from 'bouscs-util'
 import { Node } from './Node'
 import { NodeEventListener } from './NodeEventListener'
 import { AnyNode, GetEvents } from './types'

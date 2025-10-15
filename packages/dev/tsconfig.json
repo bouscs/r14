@@ -2,7 +2,11 @@
   "extends": ["../../tsconfig.json"],
   "compilerOptions": {
     "lib": ["ESNext", "DOM"],
-    "baseUrl": "./src"
+    "baseUrl": "./src",
+    "paths": {
+      "repeater14": ["../../repeater14"],
+      "repeater14/*": ["../../repeater14/*"]
+    }
   },
-  "include": ["src", "./vite.config.ts"]
+  "include": ["src", "./vite.config.ts"],
 }

@@ -2,7 +2,7 @@ import { Component, Node } from '../node'
 
 import * as planck from 'planck'
 import { Body2D } from './Body2D'
-import { bound } from 'aureamorum'
+import { bound } from 'bouscs-util'
 import { Collider2D } from './Collider2D'
 
 export interface BoxCollider2DProps {

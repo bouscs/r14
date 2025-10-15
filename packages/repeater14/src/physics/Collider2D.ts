@@ -2,7 +2,7 @@ import { Component, Node } from '../node'
 
 import * as THREE from 'three'
 import * as planck from 'planck'
-import { bound } from 'aureamorum'
+import { bound } from 'bouscs-util'
 import { Body2D } from './Body2D'
 import { engine } from '../engine'
 

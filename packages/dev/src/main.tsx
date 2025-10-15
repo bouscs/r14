@@ -13,7 +13,7 @@ import {
   Interactive,
   PointerNodeEvent
 } from 'repeater14'
-import { Signal, trait } from 'aureamorum'
+import { Signal, trait } from 'bouscs-util'
 import * as THREE from 'three'
 import * as planck from 'planck'
 
