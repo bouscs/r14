@@ -3,6 +3,7 @@ import { WebGPURenderer } from './WebGPURenderer'
 import { WebGPUMaterial } from './WebGPUMaterial'
 import { WebGPUMaterialOptions } from './types'
 import { v4 as uuidv4 } from 'uuid'
+import { engine } from '../../engine'
 
 export interface WebGPUSpriteProps {
   material?: WebGPUMaterialOptions
@@ -11,24 +12,30 @@ export interface WebGPUSpriteProps {
 }
 
 export class WebGPUSprite extends Node {
-  renderer: WebGPURenderer
-  material: WebGPUMaterial
-  vertexBuffer: GPUBuffer
+  renderer!: WebGPURenderer
+  material!: WebGPUMaterial
+  vertexBuffer!: GPUBuffer
   id: string
 
   width: number
   height: number
 
-  constructor(renderer: WebGPURenderer, props: WebGPUSpriteProps & NodeProps) {
+  constructor(props: WebGPUSpriteProps & NodeProps) {
     super(props)
 
-    this.renderer = renderer
     this.id = uuidv4()
     this.width = props.width ?? 1
     this.height = props.height ?? 1
 
+    // Get renderer from engine
+    const webgpuEngine = engine as any
+    if (!webgpuEngine.webgpu) {
+      throw new Error('WebGPU renderer not initialized. Make sure WebGPUPlugin is loaded.')
+    }
+    this.renderer = webgpuEngine.webgpu
+
     // Create material
-    this.material = new WebGPUMaterial(renderer, props.material)
+    this.material = new WebGPUMaterial(this.renderer, props.material)
 
     // Create quad vertices (position + UV)
     const halfWidth = this.width / 2
@@ -46,7 +53,7 @@ export class WebGPUSprite extends Node {
       -halfWidth, halfHeight, 0.0, 0.0,  // top-left
     ])
 
-    this.vertexBuffer = renderer.createVertexBuffer(vertices)
+    this.vertexBuffer = this.renderer.createVertexBuffer(vertices)
 
     // Register with renderer
     const renderObject = this.material.createRenderObject(this.vertexBuffer)
